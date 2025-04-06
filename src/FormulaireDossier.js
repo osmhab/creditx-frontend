@@ -4,6 +4,23 @@ import React, { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase-config";
 import { useAuth } from "./AuthContext";
+import {
+    Grid,
+    TextField,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    FormControlLabel,
+    Checkbox,
+    Button,
+    Box,
+    Typography
+  } from "@mui/material";
+  
+  
+
+
 
 function FormulaireDossier() {
   const { user } = useAuth();
@@ -138,641 +155,783 @@ function FormulaireDossier() {
   
 
   return (
+
+    
     <div style={{ maxWidth: "700px", margin: "auto" }}>
       <h2>Formulaire – Étape {step}</h2>
 
       {step === 1 && (
         <>
           <h3>Vos informations</h3>
-          <label>Prénom</label><br />
-          <input name="prenom" value={formData.prenom || ""} onChange={handleChange} placeholder="Prénom" /><br />
-          <label>Nom</label><br />
-          <input name="nom" value={formData.nom || ""} onChange={handleChange} placeholder="Nom" /><br />
-          <label>Rue et numéro</label><br />
-          <input name="rueNumero" value={formData.rueNumero || ""} onChange={handleChange} placeholder="Rue et numéro" /><br />
-          <label>NPA Localité</label><br />
-          <input name="npaLocalite" value={formData.npaLocalite || ""} onChange={handleChange} placeholder="NPA / Localité" /><br />
-          <label>Téléphone</label><br />
-          <input name="telephone" value={formData.telephone || ""} onChange={handleChange} placeholder="+41 70 000 00 00" /><br />
-          <label>Date de naissance</label><br />
-          <input
-  type="text"
-  name="dateNaissance"
-  inputMode="numeric"
-  value={formData.dateNaissance || ""}
-  onChange={(e) => {
-    const masked = masquerDateNaissance(e.target.value);
-    setFormData({ ...formData, dateNaissance: masked });
-    if (user) {
-      const ref = doc(db, "dossiers", user.uid);
-      updateDoc(ref, { dateNaissance: masked });
-    }
-  }}
-  placeholder="JJ.MM.AAAA"
-/><br />
+          <TextField
+        label="Prénom"
+        name="prenom"
+        value={formData.prenom || ""}
+        onChange={handleChange}
+        fullWidth
+        margin="normal"
+        />
 
-<label>Nationalité</label><br />
-          <select name="nationalite" value={formData.nationalite || ""} onChange={handleChange}>
-  <option value="">-- Nationalité --</option>
-  <option value="Suisse">Suisse</option>
-  <option value="Allemagne">Allemagne</option>
-  <option value="Italie">Italie</option>
-  <option value="France">France</option>
-  <option value="Afghanistan">Afghanistan</option>
-  <option value="Afrique du Sud">Afrique du Sud</option>
-  <option value="Albanie">Albanie</option>
-  <option value="Algérie">Algérie</option>
-  <option value="Andorre">Andorre</option>
-  <option value="Angola">Angola</option>
-  <option value="Antigua-et-Barbuda">Antigua-et-Barbuda</option>
-  <option value="Arabie Saoudite">Arabie Saoudite</option>
-  <option value="Argentine">Argentine</option>
-  <option value="Arménie">Arménie</option>
-  <option value="Australie">Australie</option>
-  <option value="Autriche">Autriche</option>
-  <option value="Azerbaïdjan">Azerbaïdjan</option>
-  <option value="Bahamas">Bahamas</option>
-  <option value="Bahreïn">Bahreïn</option>
-  <option value="Bangladesh">Bangladesh</option>
-  <option value="Barbade">Barbade</option>
-  <option value="Belgique">Belgique</option>
-  <option value="Belize">Belize</option>
-  <option value="Bénin">Bénin</option>
-  <option value="Bhoutan">Bhoutan</option>
-  <option value="Biélorussie">Biélorussie</option>
-  <option value="Birmanie">Birmanie</option>
-  <option value="Bolivie">Bolivie</option>
-  <option value="Bosnie-Herzégovine">Bosnie-Herzégovine</option>
-  <option value="Botswana">Botswana</option>
-  <option value="Brésil">Brésil</option>
-  <option value="Brunei">Brunei</option>
-  <option value="Bulgarie">Bulgarie</option>
-  <option value="Burkina Faso">Burkina Faso</option>
-  <option value="Burundi">Burundi</option>
-  <option value="Cambodge">Cambodge</option>
-  <option value="Cameroun">Cameroun</option>
-  <option value="Canada">Canada</option>
-  <option value="Cap-Vert">Cap-Vert</option>
-  <option value="Chili">Chili</option>
-  <option value="Chine">Chine</option>
-  <option value="Chypre">Chypre</option>
-  <option value="Colombie">Colombie</option>
-  <option value="Comores">Comores</option>
-  <option value="Congo (Brazzaville)">Congo (Brazzaville)</option>
-  <option value="Congo (Kinshasa)">Congo (Kinshasa)</option>
-  <option value="Corée du Nord">Corée du Nord</option>
-  <option value="Corée du Sud">Corée du Sud</option>
-  <option value="Costa Rica">Costa Rica</option>
-  <option value="Côte d'Ivoire">Côte d'Ivoire</option>
-  <option value="Croatie">Croatie</option>
-  <option value="Cuba">Cuba</option>
-  <option value="Danemark">Danemark</option>
-  <option value="Djibouti">Djibouti</option>
-  <option value="Dominique">Dominique</option>
-  <option value="Égypte">Égypte</option>
-  <option value="Émirats Arabes Unis">Émirats Arabes Unis</option>
-  <option value="Équateur">Équateur</option>
-  <option value="Érythrée">Érythrée</option>
-  <option value="Espagne">Espagne</option>
-  <option value="Estonie">Estonie</option>
-  <option value="Eswatini">Eswatini</option>
-  <option value="États-Unis">États-Unis</option>
-  <option value="Éthiopie">Éthiopie</option>
-  <option value="Fidji">Fidji</option>
-  <option value="Finlande">Finlande</option>
-  <option value="Gabon">Gabon</option>
-  <option value="Gambie">Gambie</option>
-  <option value="Géorgie">Géorgie</option>
-  <option value="Ghana">Ghana</option>
-  <option value="Grèce">Grèce</option>
-  <option value="Grenade">Grenade</option>
-  <option value="Guatemala">Guatemala</option>
-  <option value="Guinée">Guinée</option>
-  <option value="Guinée équatoriale">Guinée équatoriale</option>
-  <option value="Guinée-Bissau">Guinée-Bissau</option>
-  <option value="Guyana">Guyana</option>
-  <option value="Haïti">Haïti</option>
-  <option value="Honduras">Honduras</option>
-  <option value="Hongrie">Hongrie</option>
-  <option value="Inde">Inde</option>
-  <option value="Indonésie">Indonésie</option>
-  <option value="Irak">Irak</option>
-  <option value="Iran">Iran</option>
-  <option value="Irlande">Irlande</option>
-  <option value="Islande">Islande</option>
-  <option value="Israël">Israël</option>
-  <option value="Jamaïque">Jamaïque</option>
-  <option value="Japon">Japon</option>
-  <option value="Jordanie">Jordanie</option>
-  <option value="Kazakhstan">Kazakhstan</option>
-  <option value="Kenya">Kenya</option>
-  <option value="Kirghizistan">Kirghizistan</option>
-  <option value="Kiribati">Kiribati</option>
-  <option value="Koweït">Koweït</option>
-  <option value="Laos">Laos</option>
-  <option value="Lesotho">Lesotho</option>
-  <option value="Lettonie">Lettonie</option>
-  <option value="Liban">Liban</option>
-  <option value="Libéria">Libéria</option>
-  <option value="Libye">Libye</option>
-  <option value="Liechtenstein">Liechtenstein</option>
-  <option value="Lituanie">Lituanie</option>
-  <option value="Luxembourg">Luxembourg</option>
-  <option value="Macédoine du Nord">Macédoine du Nord</option>
-  <option value="Madagascar">Madagascar</option>
-  <option value="Malaisie">Malaisie</option>
-  <option value="Malawi">Malawi</option>
-  <option value="Maldives">Maldives</option>
-  <option value="Mali">Mali</option>
-  <option value="Malte">Malte</option>
-  <option value="Maroc">Maroc</option>
-  <option value="Îles Marshall">Îles Marshall</option>
-  <option value="Maurice">Maurice</option>
-  <option value="Mauritanie">Mauritanie</option>
-  <option value="Mexique">Mexique</option>
-  <option value="Micronésie">Micronésie</option>
-  <option value="Moldavie">Moldavie</option>
-  <option value="Monaco">Monaco</option>
-  <option value="Mongolie">Mongolie</option>
-  <option value="Monténégro">Monténégro</option>
-  <option value="Mozambique">Mozambique</option>
-  <option value="Myanmar (Birmanie)">Myanmar (Birmanie)</option>
-  <option value="Namibie">Namibie</option>
-  <option value="Nauru">Nauru</option>
-  <option value="Népal">Népal</option>
-  <option value="Nicaragua">Nicaragua</option>
-  <option value="Niger">Niger</option>
-  <option value="Nigéria">Nigéria</option>
-  <option value="Norvège">Norvège</option>
-  <option value="Nouvelle-Zélande">Nouvelle-Zélande</option>
-  <option value="Oman">Oman</option>
-  <option value="Ouganda">Ouganda</option>
-  <option value="Ouzbékistan">Ouzbékistan</option>
-  <option value="Pakistan">Pakistan</option>
-  <option value="Palaos">Palaos</option>
-  <option value="Palestine">Palestine</option>
-  <option value="Panama">Panama</option>
-  <option value="Papouasie-Nouvelle-Guinée">Papouasie-Nouvelle-Guinée</option>
-  <option value="Paraguay">Paraguay</option>
-  <option value="Pays-Bas">Pays-Bas</option>
-  <option value="Pérou">Pérou</option>
-  <option value="Philippines">Philippines</option>
-  <option value="Pologne">Pologne</option>
-  <option value="Portugal">Portugal</option>
-  <option value="Qatar">Qatar</option>
-  <option value="République centrafricaine">République centrafricaine</option>
-  <option value="République démocratique du Congo">République démocratique du Congo</option>
-  <option value="République dominicaine">République dominicaine</option>
-  <option value="République tchèque">République tchèque</option>
-  <option value="Roumanie">Roumanie</option>
-  <option value="Royaume-Uni">Royaume-Uni</option>
-  <option value="Russie">Russie</option>
-  <option value="Rwanda">Rwanda</option>
-  <option value="Saint-Christophe-et-Niévès">Saint-Christophe-et-Niévès</option>
-  <option value="Saint-Marin">Saint-Marin</option>
-  <option value="Saint-Vincent-et-les-Grenadines">Saint-Vincent-et-les-Grenadines</option>
-  <option value="Sainte-Lucie">Sainte-Lucie</option>
-  <option value="Salomon">Salomon</option>
-  <option value="Salvador">Salvador</option>
-  <option value="Samoa">Samoa</option>
-  <option value="São Tomé-et-Principe">São Tomé-et-Principe</option>
-  <option value="Sénégal">Sénégal</option>
-  <option value="Serbie">Serbie</option>
-  <option value="Seychelles">Seychelles</option>
-  <option value="Sierra Leone">Sierra Leone</option>
-  <option value="Singapour">Singapour</option>
-  <option value="Slovaquie">Slovaquie</option>
-  <option value="Slovénie">Slovénie</option>
-  <option value="Somalie">Somalie</option>
-  <option value="Soudan">Soudan</option>
-  <option value="Soudan du Sud">Soudan du Sud</option>
-  <option value="Sri Lanka">Sri Lanka</option>
-  <option value="Suède">Suède</option>
-  <option value="Suriname">Suriname</option>
-  <option value="Syrie">Syrie</option>
-  <option value="Tadjikistan">Tadjikistan</option>
-  <option value="Tanzanie">Tanzanie</option>
-  <option value="Tchad">Tchad</option>
-  <option value="Thaïlande">Thaïlande</option>
-  <option value="Timor oriental">Timor oriental</option>
-  <option value="Togo">Togo</option>
-  <option value="Tonga">Tonga</option>
-  <option value="Trinité-et-Tobago">Trinité-et-Tobago</option>
-  <option value="Tunisie">Tunisie</option>
-  <option value="Turkménistan">Turkménistan</option>
-  <option value="Turquie">Turquie</option>
-  <option value="Tuvalu">Tuvalu</option>
-  <option value="Ukraine">Ukraine</option>
-  <option value="Uruguay">Uruguay</option>
-  <option value="Vanuatu">Vanuatu</option>
-  <option value="Vatican">Vatican</option>
-  <option value="Venezuela">Venezuela</option>
-  <option value="Viêt Nam">Viêt Nam</option>
-  <option value="Yémen">Yémen</option>
-  <option value="Zambie">Zambie</option>
-  <option value="Zimbabwe">Zimbabwe</option>
-</select><br />
+        <TextField
+      label="Nom"
+      name="nom"
+      value={formData.nom || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+        />
+          <TextField
+      label="Rue et numéro"
+      name="rueNumero"
+      value={formData.rueNumero || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+          <TextField
+      label="NPA / Localité"
+      name="npaLocalite"
+      value={formData.npaLocalite || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+          <TextField
+      label="Téléphone"
+      name="telephone"
+      value={formData.telephone || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+          <TextField
+      label="Date de naissance"
+      name="dateNaissance"
+      inputMode="numeric"
+      value={formData.dateNaissance || ""}
+      onChange={(e) => {
+        const masked = masquerDateNaissance(e.target.value);
+        setFormData({ ...formData, dateNaissance: masked });
+        if (user) {
+          const ref = doc(db, "dossiers", user.uid);
+          updateDoc(ref, { dateNaissance: masked });
+        }
+      }}
+      fullWidth
+      margin="normal"
+      placeholder="JJ.MM.AAAA"
+    />
+
+<FormControl fullWidth margin="normal">
+  <InputLabel>Nationalité</InputLabel>
+  <Select
+    label="Nationalité"
+    name="nationalite"
+    value={formData.nationalite || ""}
+    onChange={handleChange}
+  >
+    <MenuItem value="">-- Nationalité --</MenuItem>
+    <MenuItem value="Suisse">Suisse</MenuItem>
+  <MenuItem value="Allemange">Allemagne</MenuItem>
+  <MenuItem value="Italie">Italie</MenuItem>
+  <MenuItem value="France">France</MenuItem>
+  <MenuItem value="Afghanistan">Afghanistan</MenuItem>
+    <MenuItem value="Afrique du Sud">Afrique du Sud</MenuItem>
+    <MenuItem value="Albanie">Albanie</MenuItem>
+    <MenuItem value="Algérie">Algérie</MenuItem>
+    <MenuItem value="Andorre">Andorre</MenuItem>
+    <MenuItem value="Angola">Angola</MenuItem>
+    <MenuItem value="Antigua-et-Barbuda">Antigua-et-Barbuda</MenuItem>
+    <MenuItem value="Arabie Saoudite">Arabie Saoudite</MenuItem>
+    <MenuItem value="Argentine">Argentine</MenuItem>
+    <MenuItem value="Arménie">Arménie</MenuItem>
+    <MenuItem value="Australie">Australie</MenuItem>
+    <MenuItem value="Autriche">Autriche</MenuItem>
+    <MenuItem value="Azerbaïdjan">Azerbaïdjan</MenuItem>
+    <MenuItem value="Bahamas">Bahamas</MenuItem>
+    <MenuItem value="Bahreïn">Bahreïn</MenuItem>
+    <MenuItem value="Bangladesh">Bangladesh</MenuItem>
+    <MenuItem value="Barbade">Barbade</MenuItem>
+    <MenuItem value="Belgique">Belgique</MenuItem>
+    <MenuItem value="Belize">Belize</MenuItem>
+    <MenuItem value="Bénin">Bénin</MenuItem>
+    <MenuItem value="Bhoutan">Bhoutan</MenuItem>
+    <MenuItem value="Biélorussie">Biélorussie</MenuItem>
+    <MenuItem value="Birmanie">Birmanie</MenuItem>
+    <MenuItem value="Bolivie">Bolivie</MenuItem>
+    <MenuItem value="Bosnie-Herzégovine">Bosnie-Herzégovine</MenuItem>
+    <MenuItem value="Botswana">Botswana</MenuItem>
+    <MenuItem value="Brésil">Brésil</MenuItem>
+    <MenuItem value="Brunei">Brunei</MenuItem>
+    <MenuItem value="Bulgarie">Bulgarie</MenuItem>
+    <MenuItem value="Burkina Faso">Burkina Faso</MenuItem>
+    <MenuItem value="Burundi">Burundi</MenuItem>
+    <MenuItem value="Cambodge">Cambodge</MenuItem>
+    <MenuItem value="Cameroun">Cameroun</MenuItem>
+    <MenuItem value="Canada">Canada</MenuItem>
+    <MenuItem value="Cap-Vert">Cap-Vert</MenuItem>
+    <MenuItem value="Chili">Chili</MenuItem>
+    <MenuItem value="Chine">Chine</MenuItem>
+    <MenuItem value="Chypre">Chypre</MenuItem>
+    <MenuItem value="Colombie">Colombie</MenuItem>
+    <MenuItem value="Comores">Comores</MenuItem>
+    <MenuItem value="Congo (Brazzaville)">Congo (Brazzaville)</MenuItem>
+    <MenuItem value="Congo (Kinshasa)">Congo (Kinshasa)</MenuItem>
+    <MenuItem value="Corée du Nord">Corée du Nord</MenuItem>
+    <MenuItem value="Corée du Sud">Corée du Sud</MenuItem>
+    <MenuItem value="Costa Rica">Costa Rica</MenuItem>
+    <MenuItem value="Côte d'Ivoire">Côte d'Ivoire</MenuItem>
+    <MenuItem value="Croatie">Croatie</MenuItem>
+    <MenuItem value="Cuba">Cuba</MenuItem>
+    <MenuItem value="Danemark">Danemark</MenuItem>
+    <MenuItem value="Djibouti">Djibouti</MenuItem>
+    <MenuItem value="Dominique">Dominique</MenuItem>
+    <MenuItem value="Égypte">Égypte</MenuItem>
+    <MenuItem value="Émirats Arabes Unis">Émirats Arabes Unis</MenuItem>
+    <MenuItem value="Équateur">Équateur</MenuItem>
+    <MenuItem value="Érythrée">Érythrée</MenuItem>
+    <MenuItem value="Espagne">Espagne</MenuItem>
+    <MenuItem value="Estonie">Estonie</MenuItem>
+    <MenuItem value="Eswatini">Eswatini</MenuItem>
+    <MenuItem value="États-Unis">États-Unis</MenuItem>
+    <MenuItem value="Éthiopie">Éthiopie</MenuItem>
+    <MenuItem value="Fidji">Fidji</MenuItem>
+    <MenuItem value="Finlande">Finlande</MenuItem>
+    <MenuItem value="Gabon">Gabon</MenuItem>
+    <MenuItem value="Gambie">Gambie</MenuItem>
+    <MenuItem value="Géorgie">Géorgie</MenuItem>
+    <MenuItem value="Ghana">Ghana</MenuItem>
+    <MenuItem value="Grèce">Grèce</MenuItem>
+    <MenuItem value="Grenade">Grenade</MenuItem>
+    <MenuItem value="Guatemala">Guatemala</MenuItem>
+    <MenuItem value="Guinée">Guinée</MenuItem>
+    <MenuItem value="Guinée équatoriale">Guinée équatoriale</MenuItem>
+    <MenuItem value="Guinée-Bissau">Guinée-Bissau</MenuItem>
+    <MenuItem value="Guyana">Guyana</MenuItem>
+    <MenuItem value="Haïti">Haïti</MenuItem>
+    <MenuItem value="Honduras">Honduras</MenuItem>
+    <MenuItem value="Hongrie">Hongrie</MenuItem>
+    <MenuItem value="Inde">Inde</MenuItem>
+    <MenuItem value="Indonésie">Indonésie</MenuItem>
+    <MenuItem value="Irak">Irak</MenuItem>
+    <MenuItem value="Iran">Iran</MenuItem>
+    <MenuItem value="Irlande">Irlande</MenuItem>
+    <MenuItem value="Islande">Islande</MenuItem>
+    <MenuItem value="Israël">Israël</MenuItem>
+    <MenuItem value="Jamaïque">Jamaïque</MenuItem>
+    <MenuItem value="Japon">Japon</MenuItem>
+    <MenuItem value="Jordanie">Jordanie</MenuItem>
+    <MenuItem value="Kazakhstan">Kazakhstan</MenuItem>
+    <MenuItem value="Kenya">Kenya</MenuItem>
+    <MenuItem value="Kirghizistan">Kirghizistan</MenuItem>
+    <MenuItem value="Kiribati">Kiribati</MenuItem>
+    <MenuItem value="Koweït">Koweït</MenuItem>
+    <MenuItem value="Laos">Laos</MenuItem>
+    <MenuItem value="Lesotho">Lesotho</MenuItem>
+    <MenuItem value="Lettonie">Lettonie</MenuItem>
+    <MenuItem value="Liban">Liban</MenuItem>
+    <MenuItem value="Libéria">Libéria</MenuItem>
+    <MenuItem value="Libye">Libye</MenuItem>
+    <MenuItem value="Liechtenstein">Liechtenstein</MenuItem>
+    <MenuItem value="Lituanie">Lituanie</MenuItem>
+    <MenuItem value="Luxembourg">Luxembourg</MenuItem>
+    <MenuItem value="Macédoine du Nord">Macédoine du Nord</MenuItem>
+    <MenuItem value="Madagascar">Madagascar</MenuItem>
+    <MenuItem value="Malaisie">Malaisie</MenuItem>
+    <MenuItem value="Malawi">Malawi</MenuItem>
+    <MenuItem value="Maldives">Maldives</MenuItem>
+    <MenuItem value="Mali">Mali</MenuItem>
+    <MenuItem value="Malte">Malte</MenuItem>
+    <MenuItem value="Maroc">Maroc</MenuItem>
+    <MenuItem value="Îles Marshall">Îles Marshall</MenuItem>
+    <MenuItem value="Maurice">Maurice</MenuItem>
+    <MenuItem value="Mauritanie">Mauritanie</MenuItem>
+    <MenuItem value="Mexique">Mexique</MenuItem>
+    <MenuItem value="Micronésie">Micronésie</MenuItem>
+    <MenuItem value="Moldavie">Moldavie</MenuItem>
+    <MenuItem value="Monaco">Monaco</MenuItem>
+    <MenuItem value="Mongolie">Mongolie</MenuItem>
+    <MenuItem value="Monténégro">Monténégro</MenuItem>
+    <MenuItem value="Mozambique">Mozambique</MenuItem>
+    <MenuItem value="Myanmar (Birmanie)">Myanmar (Birmanie)</MenuItem>
+    <MenuItem value="Namibie">Namibie</MenuItem>
+    <MenuItem value="Nauru">Nauru</MenuItem>
+    <MenuItem value="Népal">Népal</MenuItem>
+    <MenuItem value="Nicaragua">Nicaragua</MenuItem>
+    <MenuItem value="Niger">Niger</MenuItem>
+    <MenuItem value="Nigéria">Nigéria</MenuItem>
+    <MenuItem value="Norvège">Norvège</MenuItem>
+    <MenuItem value="Nouvelle-Zélande">Nouvelle-Zélande</MenuItem>
+    <MenuItem value="Oman">Oman</MenuItem>
+    <MenuItem value="Ouganda">Ouganda</MenuItem>
+    <MenuItem value="Ouzbékistan">Ouzbékistan</MenuItem>
+    <MenuItem value="Pakistan">Pakistan</MenuItem>
+    <MenuItem value="Palaos">Palaos</MenuItem>
+    <MenuItem value="Palestine">Palestine</MenuItem>
+    <MenuItem value="Panama">Panama</MenuItem>
+    <MenuItem value="Papouasie-Nouvelle-Guinée">Papouasie-Nouvelle-Guinée</MenuItem>
+    <MenuItem value="Paraguay">Paraguay</MenuItem>
+    <MenuItem value="Pays-Bas">Pays-Bas</MenuItem>
+    <MenuItem value="Pérou">Pérou</MenuItem>
+    <MenuItem value="Philippines">Philippines</MenuItem>
+    <MenuItem value="Pologne">Pologne</MenuItem>
+    <MenuItem value="Portugal">Portugal</MenuItem>
+    <MenuItem value="Qatar">Qatar</MenuItem>
+    <MenuItem value="République centrafricaine">République centrafricaine</MenuItem>
+    <MenuItem value="République démocratique du Congo">République démocratique du Congo</MenuItem>
+    <MenuItem value="République dominicaine">République dominicaine</MenuItem>
+    <MenuItem value="République tchèque">République tchèque</MenuItem>
+    <MenuItem value="Roumanie">Roumanie</MenuItem>
+    <MenuItem value="Royaume-Uni">Royaume-Uni</MenuItem>
+    <MenuItem value="Russie">Russie</MenuItem>
+    <MenuItem value="Rwanda">Rwanda</MenuItem>
+    <MenuItem value="Saint-Christophe-et-Niévès">Saint-Christophe-et-Niévès</MenuItem>
+    <MenuItem value="Saint-Marin">Saint-Marin</MenuItem>
+    <MenuItem value="Saint-Vincent-et-les-Grenadines">Saint-Vincent-et-les-Grenadines</MenuItem>
+    <MenuItem value="Sainte-Lucie">Sainte-Lucie</MenuItem>
+    <MenuItem value="Salomon">Salomon</MenuItem>
+    <MenuItem value="Salvador">Salvador</MenuItem>
+    <MenuItem value="Samoa">Samoa</MenuItem>
+    <MenuItem value="São Tomé-et-Principe">São Tomé-et-Principe</MenuItem>
+    <MenuItem value="Sénégal">Sénégal</MenuItem>
+    <MenuItem value="Serbie">Serbie</MenuItem>
+    <MenuItem value="Seychelles">Seychelles</MenuItem>
+    <MenuItem value="Sierra Leone">Sierra Leone</MenuItem>
+    <MenuItem value="Singapour">Singapour</MenuItem>
+    <MenuItem value="Slovaquie">Slovaquie</MenuItem>
+    <MenuItem value="Slovénie">Slovénie</MenuItem>
+    <MenuItem value="Somalie">Somalie</MenuItem>
+    <MenuItem value="Soudan">Soudan</MenuItem>
+    <MenuItem value="Soudan du Sud">Soudan du Sud</MenuItem>
+    <MenuItem value="Sri Lanka">Sri Lanka</MenuItem>
+    <MenuItem value="Suède">Suède</MenuItem>
+    <MenuItem value="Suriname">Suriname</MenuItem>
+    <MenuItem value="Syrie">Syrie</MenuItem>
+    <MenuItem value="Tadjikistan">Tadjikistan</MenuItem>
+    <MenuItem value="Tanzanie">Tanzanie</MenuItem>
+    <MenuItem value="Tchad">Tchad</MenuItem>
+    <MenuItem value="Thaïlande">Thaïlande</MenuItem>
+    <MenuItem value="Timor oriental">Timor oriental</MenuItem>
+    <MenuItem value="Togo">Togo</MenuItem>
+    <MenuItem value="Tonga">Tonga</MenuItem>
+    <MenuItem value="Trinité-et-Tobago">Trinité-et-Tobago</MenuItem>
+    <MenuItem value="Tunisie">Tunisie</MenuItem>
+    <MenuItem value="Turkménistan">Turkménistan</MenuItem>
+    <MenuItem value="Turquie">Turquie</MenuItem>
+    <MenuItem value="Tuvalu">Tuvalu</MenuItem>
+    <MenuItem value="Ukraine">Ukraine</MenuItem>
+    <MenuItem value="Uruguay">Uruguay</MenuItem>
+    <MenuItem value="Vanuatu">Vanuatu</MenuItem>
+    <MenuItem value="Vatican">Vatican</MenuItem>
+    <MenuItem value="Venezuela">Venezuela</MenuItem>
+    <MenuItem value="Viêt Nam">Viêt Nam</MenuItem>
+    <MenuItem value="Yémen">Yémen</MenuItem>
+    <MenuItem value="Zambie">Zambie</MenuItem>
+    <MenuItem value="Zimbabwe">Zimbabwe</MenuItem>
+    
+  </Select>
+</FormControl>
+
 
 {formData.nationalite && formData.nationalite !== "Suisse" && (
   <>
-    <label>Permis de séjour :</label><br />
-    <select
-      name="permisSejour"
-      value={formData.permisSejour || ""}
-      onChange={handleChange}
-    >
-      <option value="">-- Sélectionner le permis --</option>
-      <option value="B">Permis B</option>
-      <option value="C">Permis C</option>
-    </select><br />
+  <FormControl fullWidth margin="normal">
+  <InputLabel id="permisSejour-label">Permis de séjour</InputLabel>
+  <Select
+    labelId="permisSejour-label"
+    id="permisSejour"
+    name="permisSejour"
+    value={formData.permisSejour || ""}
+    onChange={handleChange}
+    label="Permis de séjour"
+  >
+    <MenuItem value=""><em>-- Sélectionner le permis --</em></MenuItem>
+    <MenuItem value="B">Permis B</MenuItem>
+    <MenuItem value="C">Permis C</MenuItem>
+    <MenuItem value="L">Permis L</MenuItem>
+    <MenuItem value="G">Permis G</MenuItem>
+  </Select>
+</FormControl>
+
   </>
 )}
-<label>Etat civil</label><br />
-          <select
-  name="etatCivil"
-  value={formData.etatCivil || ""}
-  onChange={(e) => {
-    const value = e.target.value;
-    const updatedData = {
-      ...formData,
-      etatCivil: value,
-    };
+<FormControl fullWidth margin="normal">
 
-    // Réinitialiser ajout conjoint si autre état civil
-    if (value !== "marie") {
-      updatedData.ajouterDeuxiemePersonne = false;
-    }
 
-    setFormData(updatedData);
-    if (user) {
-      const ref = doc(db, "dossiers", user.uid);
-      updateDoc(ref, updatedData);
-    }
-  }}
->
-  <option value="">-- État civil --</option>
-  <option value="celibataire">Célibataire</option>
-  <option value="marie">Marié(e)</option>
-  <option value="divorce">Divorcé(e)</option>
-  <option value="veuf">Veuf / Veuve</option>
-</select><br />
+  <InputLabel>État civil</InputLabel>
+  <Select
+    label="État civil"
+    name="etatCivil"
+    value={formData.etatCivil || ""}
+    onChange={(e) => {
+      const value = e.target.value;
+      const updatedData = { ...formData, etatCivil: value };
+      if (value !== "marie") {
+        updatedData.ajouterDeuxiemePersonne = false;
+      }
+      setFormData(updatedData);
+      if (user) {
+        const ref = doc(db, "dossiers", user.uid);
+        updateDoc(ref, updatedData);
+      }
+    }}
+  >
+    <MenuItem value="">-- État civil --</MenuItem>
+    <MenuItem value="celibataire">Célibataire</MenuItem>
+    <MenuItem value="marie">Marié(e)</MenuItem>
+    <MenuItem value="divorce">Divorcé(e)</MenuItem>
+    <MenuItem value="veuf">Veuf / Veuve</MenuItem>
+  </Select>
+</FormControl>
 
-{formData.etatCivil === "marie" && (
-  <label>
-    <input
-      type="checkbox"
-      checked={formData.ajouterDeuxiemePersonne || false}
-      onChange={(e) => {
-        const checked = e.target.checked;
-        const update = {
-          ajouterDeuxiemePersonne: checked,
-        };
 
-        // Définir l’état civil du conjoint automatiquement si coché
-        if (checked) {
-          update.conjointEtatCivil = "marie";
-        }
+    <TextField
+  label="Formation"
+  name="formation"
+  value={formData.formation || ""}
+  onChange={handleChange}
+  fullWidth
+  margin="normal"
+/>
 
-        const newData = { ...formData, ...update };
-        setFormData(newData);
+<TextField
+  label="Profession"
+  name="profession"
+  value={formData.profession || ""}
+  onChange={handleChange}
+  fullWidth
+  margin="normal"
+/>
+
+<TextField
+  label="Fonction (Employé, Directeur, etc.)"
+  name="fonction"
+  value={formData.fonction || ""}
+  onChange={handleChange}
+  fullWidth
+  margin="normal"
+/>
+
+<TextField
+  label="Employeur"
+  name="employeur"
+  value={formData.employeur || ""}
+  onChange={handleChange}
+  fullWidth
+  margin="normal"
+/>
+
+<TextField
+  label="Adresse employeur (NPA Localité)"
+  name="adresseEmployeur"
+  value={formData.adresseEmployeur || ""}
+  onChange={handleChange}
+  fullWidth
+  margin="normal"
+/>
+
+<FormControlLabel
+  control={
+    <Checkbox
+      checked={formData.ayantEnfants || false}
+      onChange={(e) => handleChange({ target: { name: "ayantEnfants", value: e.target.checked } })}
+    />
+  }
+  label="J’ai des enfants à charge"
+/>
+
+{formData.ayantEnfants && (
+  <>
+    {(formData.enfants || []).map((annee, index) => (
+      <Box key={index} display="flex" alignItems="center" gap={1} mb={1}>
+        <TextField
+          label={`Année de naissance #${index + 1}`}
+          value={annee}
+          onChange={(e) => {
+            const newEnfants = [...formData.enfants];
+            newEnfants[index] = e.target.value;
+            setFormData({ ...formData, enfants: newEnfants });
+            if (user) {
+              const ref = doc(db, "dossiers", user.uid);
+              updateDoc(ref, { enfants: newEnfants });
+            }
+          }}
+        />
+        <Button
+          color="error"
+          variant="outlined"
+          onClick={() => {
+            const newEnfants = formData.enfants.filter((_, i) => i !== index);
+            setFormData({ ...formData, enfants: newEnfants });
+            if (user) {
+              const ref = doc(db, "dossiers", user.uid);
+              updateDoc(ref, { enfants: newEnfants });
+            }
+          }}
+        >
+          ❌
+        </Button>
+      </Box>
+    ))}
+    <Button
+      variant="outlined"
+      onClick={() => {
+        const newEnfants = [...(formData.enfants || []), ""];
+        setFormData({ ...formData, enfants: newEnfants });
         if (user) {
           const ref = doc(db, "dossiers", user.uid);
-          updateDoc(ref, update);
+          updateDoc(ref, { enfants: newEnfants });
         }
       }}
-    /> Souhaitez-vous ajouter votre conjoint comme 2e personne ?
-  </label>
-)}<br />
-
-<label>Formation</label><br />
-          <input name="formation" value={formData.formation || ""} onChange={handleChange} placeholder="Formation" /><br />
-<label>Profession</label><br />
-          <input name="profession" value={formData.profession || ""} onChange={handleChange} placeholder="Profession" /><br />
-<label>Fonction (Employé, Directeur, etc.)</label><br />         
-          <input name="fonction" value={formData.fonction || ""} onChange={handleChange} placeholder="Fonction" /><br />
-<label>Employeur</label><br />
-          <input name="employeur" value={formData.employeur || ""} onChange={handleChange} placeholder="Nom de l’employeur" /><br />
-<label>Adresse employeur (NPA Localité) :</label><br />
-          <input name="adresseEmployeur" value={formData.adresseEmployeur || ""} onChange={handleChange} placeholder="Adresse de l’employeur" /><br />
-
-          <label>
-            <input
-              type="checkbox"
-              checked={formData.ayantEnfants || false}
-              onChange={(e) => handleChange({ target: { name: "ayantEnfants", value: e.target.checked } })}
-            /> J’ai des enfants à charge
-          </label><br />
-
-          {formData.ayantEnfants && (
-            <>
-              {(formData.enfants || []).map((annee, index) => (
-                <div key={index}>
-                  <input
-                    type="text"
-                    placeholder="Année de naissance"
-                    value={annee}
-                    onChange={(e) => {
-                      const newEnfants = [...formData.enfants];
-                      newEnfants[index] = e.target.value;
-                      setFormData({ ...formData, enfants: newEnfants });
-                      if (user) {
-                        const ref = doc(db, "dossiers", user.uid);
-                        updateDoc(ref, { enfants: newEnfants });
-                      }
-                    }}
-                  />
-                  <button onClick={() => {
-                    const newEnfants = formData.enfants.filter((_, i) => i !== index);
-                    setFormData({ ...formData, enfants: newEnfants });
-                    if (user) {
-                      const ref = doc(db, "dossiers", user.uid);
-                      updateDoc(ref, { enfants: newEnfants });
-                    }
-                  }}>❌</button>
-                </div>
-              ))}
-              <button onClick={() => {
-                const newEnfants = [...(formData.enfants || []), ""];
-                setFormData({ ...formData, enfants: newEnfants });
-                if (user) {
-                  const ref = doc(db, "dossiers", user.uid);
-                  updateDoc(ref, { enfants: newEnfants });
-                }
-              }}>➕ Ajouter un enfant</button>
-            </>
+    >
+      ➕ Ajouter un enfant
+    </Button>
+  </>
           )}
 
           <hr />
-          <label>
-            <input
-              type="checkbox"
-              checked={formData.ajouterDeuxiemePersonne || false}
-              onChange={(e) => handleChange({ target: { name: "ajouterDeuxiemePersonne", value: e.target.checked } })}
-            /> Ajouter une deuxième personne (conjoint·e)
-          </label><br />
+          <FormControlLabel
+  control={
+    <Checkbox
+      checked={formData.ajouterDeuxiemePersonne || false}
+      onChange={(e) => handleChange({
+        target: {
+          name: "ajouterDeuxiemePersonne",
+          value: e.target.checked
+        }
+      })}
+    />
+  }
+  label="Ajouter une deuxième personne (conjoint·e)"
+/>
 
-          {formData.ajouterDeuxiemePersonne && (
-            <>
-              <h4>Deuxième personne (conjoint·e)</h4>
-              
-        <label>Prénom</label><br />
-        <input name="conjointPrenom" value={formData.conjointPrenom || ""} onChange={handleChange} placeholder="Prénom" /><br />
-        <label>Nom</label><br />
-              <input name="conjointNom" value={formData.conjointNom || ""} onChange={handleChange} placeholder="Nom" /><br />
-        <label>Date de naissance</label><br />
-              <input
-  type="text"
-  name="conjointDateNaissance"
-  inputMode="numeric"
-  value={formData.conjointDateNaissance || ""}
-  onChange={(e) => {
-    const masked = masquerDateNaissance(e.target.value);
-    setFormData({ ...formData, conjointDateNaissance: masked });
-    if (user) {
-      const ref = doc(db, "dossiers", user.uid);
-      updateDoc(ref, { conjointDateNaissance: masked });
-    }
-  }}
-  placeholder="JJ.MM.AAAA"
-/><br />
-
-<label>Nationalité</label><br />
-              <select name="conjointNationalite" value={formData.conjointNationalite || ""} onChange={handleChange}>
-  <option value="">-- Nationalité --</option>
-  <option value="Suisse">Suisse</option>
-  <option value="Allemagne">Allemagne</option>
-  <option value="Italie">Italie</option>
-  <option value="France">France</option>
-  <option value="Afghanistan">Afghanistan</option>
-  <option value="Afrique du Sud">Afrique du Sud</option>
-  <option value="Albanie">Albanie</option>
-  <option value="Algérie">Algérie</option>
-  <option value="Andorre">Andorre</option>
-  <option value="Angola">Angola</option>
-  <option value="Antigua-et-Barbuda">Antigua-et-Barbuda</option>
-  <option value="Arabie Saoudite">Arabie Saoudite</option>
-  <option value="Argentine">Argentine</option>
-  <option value="Arménie">Arménie</option>
-  <option value="Australie">Australie</option>
-  <option value="Autriche">Autriche</option>
-  <option value="Azerbaïdjan">Azerbaïdjan</option>
-  <option value="Bahamas">Bahamas</option>
-  <option value="Bahreïn">Bahreïn</option>
-  <option value="Bangladesh">Bangladesh</option>
-  <option value="Barbade">Barbade</option>
-  <option value="Belgique">Belgique</option>
-  <option value="Belize">Belize</option>
-  <option value="Bénin">Bénin</option>
-  <option value="Bhoutan">Bhoutan</option>
-  <option value="Biélorussie">Biélorussie</option>
-  <option value="Birmanie">Birmanie</option>
-  <option value="Bolivie">Bolivie</option>
-  <option value="Bosnie-Herzégovine">Bosnie-Herzégovine</option>
-  <option value="Botswana">Botswana</option>
-  <option value="Brésil">Brésil</option>
-  <option value="Brunei">Brunei</option>
-  <option value="Bulgarie">Bulgarie</option>
-  <option value="Burkina Faso">Burkina Faso</option>
-  <option value="Burundi">Burundi</option>
-  <option value="Cambodge">Cambodge</option>
-  <option value="Cameroun">Cameroun</option>
-  <option value="Canada">Canada</option>
-  <option value="Cap-Vert">Cap-Vert</option>
-  <option value="Chili">Chili</option>
-  <option value="Chine">Chine</option>
-  <option value="Chypre">Chypre</option>
-  <option value="Colombie">Colombie</option>
-  <option value="Comores">Comores</option>
-  <option value="Congo (Brazzaville)">Congo (Brazzaville)</option>
-  <option value="Congo (Kinshasa)">Congo (Kinshasa)</option>
-  <option value="Corée du Nord">Corée du Nord</option>
-  <option value="Corée du Sud">Corée du Sud</option>
-  <option value="Costa Rica">Costa Rica</option>
-  <option value="Côte d'Ivoire">Côte d'Ivoire</option>
-  <option value="Croatie">Croatie</option>
-  <option value="Cuba">Cuba</option>
-  <option value="Danemark">Danemark</option>
-  <option value="Djibouti">Djibouti</option>
-  <option value="Dominique">Dominique</option>
-  <option value="Égypte">Égypte</option>
-  <option value="Émirats Arabes Unis">Émirats Arabes Unis</option>
-  <option value="Équateur">Équateur</option>
-  <option value="Érythrée">Érythrée</option>
-  <option value="Espagne">Espagne</option>
-  <option value="Estonie">Estonie</option>
-  <option value="Eswatini">Eswatini</option>
-  <option value="États-Unis">États-Unis</option>
-  <option value="Éthiopie">Éthiopie</option>
-  <option value="Fidji">Fidji</option>
-  <option value="Finlande">Finlande</option>
-  <option value="Gabon">Gabon</option>
-  <option value="Gambie">Gambie</option>
-  <option value="Géorgie">Géorgie</option>
-  <option value="Ghana">Ghana</option>
-  <option value="Grèce">Grèce</option>
-  <option value="Grenade">Grenade</option>
-  <option value="Guatemala">Guatemala</option>
-  <option value="Guinée">Guinée</option>
-  <option value="Guinée équatoriale">Guinée équatoriale</option>
-  <option value="Guinée-Bissau">Guinée-Bissau</option>
-  <option value="Guyana">Guyana</option>
-  <option value="Haïti">Haïti</option>
-  <option value="Honduras">Honduras</option>
-  <option value="Hongrie">Hongrie</option>
-  <option value="Inde">Inde</option>
-  <option value="Indonésie">Indonésie</option>
-  <option value="Irak">Irak</option>
-  <option value="Iran">Iran</option>
-  <option value="Irlande">Irlande</option>
-  <option value="Islande">Islande</option>
-  <option value="Israël">Israël</option>
-  <option value="Jamaïque">Jamaïque</option>
-  <option value="Japon">Japon</option>
-  <option value="Jordanie">Jordanie</option>
-  <option value="Kazakhstan">Kazakhstan</option>
-  <option value="Kenya">Kenya</option>
-  <option value="Kirghizistan">Kirghizistan</option>
-  <option value="Kiribati">Kiribati</option>
-  <option value="Koweït">Koweït</option>
-  <option value="Laos">Laos</option>
-  <option value="Lesotho">Lesotho</option>
-  <option value="Lettonie">Lettonie</option>
-  <option value="Liban">Liban</option>
-  <option value="Libéria">Libéria</option>
-  <option value="Libye">Libye</option>
-  <option value="Liechtenstein">Liechtenstein</option>
-  <option value="Lituanie">Lituanie</option>
-  <option value="Luxembourg">Luxembourg</option>
-  <option value="Macédoine du Nord">Macédoine du Nord</option>
-  <option value="Madagascar">Madagascar</option>
-  <option value="Malaisie">Malaisie</option>
-  <option value="Malawi">Malawi</option>
-  <option value="Maldives">Maldives</option>
-  <option value="Mali">Mali</option>
-  <option value="Malte">Malte</option>
-  <option value="Maroc">Maroc</option>
-  <option value="Îles Marshall">Îles Marshall</option>
-  <option value="Maurice">Maurice</option>
-  <option value="Mauritanie">Mauritanie</option>
-  <option value="Mexique">Mexique</option>
-  <option value="Micronésie">Micronésie</option>
-  <option value="Moldavie">Moldavie</option>
-  <option value="Monaco">Monaco</option>
-  <option value="Mongolie">Mongolie</option>
-  <option value="Monténégro">Monténégro</option>
-  <option value="Mozambique">Mozambique</option>
-  <option value="Myanmar (Birmanie)">Myanmar (Birmanie)</option>
-  <option value="Namibie">Namibie</option>
-  <option value="Nauru">Nauru</option>
-  <option value="Népal">Népal</option>
-  <option value="Nicaragua">Nicaragua</option>
-  <option value="Niger">Niger</option>
-  <option value="Nigéria">Nigéria</option>
-  <option value="Norvège">Norvège</option>
-  <option value="Nouvelle-Zélande">Nouvelle-Zélande</option>
-  <option value="Oman">Oman</option>
-  <option value="Ouganda">Ouganda</option>
-  <option value="Ouzbékistan">Ouzbékistan</option>
-  <option value="Pakistan">Pakistan</option>
-  <option value="Palaos">Palaos</option>
-  <option value="Palestine">Palestine</option>
-  <option value="Panama">Panama</option>
-  <option value="Papouasie-Nouvelle-Guinée">Papouasie-Nouvelle-Guinée</option>
-  <option value="Paraguay">Paraguay</option>
-  <option value="Pays-Bas">Pays-Bas</option>
-  <option value="Pérou">Pérou</option>
-  <option value="Philippines">Philippines</option>
-  <option value="Pologne">Pologne</option>
-  <option value="Portugal">Portugal</option>
-  <option value="Qatar">Qatar</option>
-  <option value="République centrafricaine">République centrafricaine</option>
-  <option value="République démocratique du Congo">République démocratique du Congo</option>
-  <option value="République dominicaine">République dominicaine</option>
-  <option value="République tchèque">République tchèque</option>
-  <option value="Roumanie">Roumanie</option>
-  <option value="Royaume-Uni">Royaume-Uni</option>
-  <option value="Russie">Russie</option>
-  <option value="Rwanda">Rwanda</option>
-  <option value="Saint-Christophe-et-Niévès">Saint-Christophe-et-Niévès</option>
-  <option value="Saint-Marin">Saint-Marin</option>
-  <option value="Saint-Vincent-et-les-Grenadines">Saint-Vincent-et-les-Grenadines</option>
-  <option value="Sainte-Lucie">Sainte-Lucie</option>
-  <option value="Salomon">Salomon</option>
-  <option value="Salvador">Salvador</option>
-  <option value="Samoa">Samoa</option>
-  <option value="São Tomé-et-Principe">São Tomé-et-Principe</option>
-  <option value="Sénégal">Sénégal</option>
-  <option value="Serbie">Serbie</option>
-  <option value="Seychelles">Seychelles</option>
-  <option value="Sierra Leone">Sierra Leone</option>
-  <option value="Singapour">Singapour</option>
-  <option value="Slovaquie">Slovaquie</option>
-  <option value="Slovénie">Slovénie</option>
-  <option value="Somalie">Somalie</option>
-  <option value="Soudan">Soudan</option>
-  <option value="Soudan du Sud">Soudan du Sud</option>
-  <option value="Sri Lanka">Sri Lanka</option>
-  <option value="Suède">Suède</option>
-  <option value="Suriname">Suriname</option>
-  <option value="Syrie">Syrie</option>
-  <option value="Tadjikistan">Tadjikistan</option>
-  <option value="Tanzanie">Tanzanie</option>
-  <option value="Tchad">Tchad</option>
-  <option value="Thaïlande">Thaïlande</option>
-  <option value="Timor oriental">Timor oriental</option>
-  <option value="Togo">Togo</option>
-  <option value="Tonga">Tonga</option>
-  <option value="Trinité-et-Tobago">Trinité-et-Tobago</option>
-  <option value="Tunisie">Tunisie</option>
-  <option value="Turkménistan">Turkménistan</option>
-  <option value="Turquie">Turquie</option>
-  <option value="Tuvalu">Tuvalu</option>
-  <option value="Ukraine">Ukraine</option>
-  <option value="Uruguay">Uruguay</option>
-  <option value="Vanuatu">Vanuatu</option>
-  <option value="Vatican">Vatican</option>
-  <option value="Venezuela">Venezuela</option>
-  <option value="Viêt Nam">Viêt Nam</option>
-  <option value="Yémen">Yémen</option>
-  <option value="Zambie">Zambie</option>
-  <option value="Zimbabwe">Zimbabwe</option>
-</select><br />
-
-{formData.conjointNationalite && formData.conjointNationalite !== "Suisse" && (
+{formData.ajouterDeuxiemePersonne && (
   <>
-    <label>Permis de séjour :</label><br />
-    <select
-      name="conjointPermisSejour"
-      value={formData.conjointPermisSejour || ""}
+    <Typography variant="h6" sx={{ mt: 3 }}>Deuxième personne (conjoint·e)</Typography>
+
+    <TextField
+      label="Prénom"
+      name="conjointPrenom"
+      value={formData.conjointPrenom || ""}
       onChange={handleChange}
-    >
-      <option value="">-- Sélectionner le permis --</option>
-      <option value="B">Permis B</option>
-      <option value="C">Permis C</option>
-    </select><br />
+      fullWidth
+      margin="normal"
+    />
+
+    <TextField
+      label="Nom"
+      name="conjointNom"
+      value={formData.conjointNom || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+
+    <TextField
+      label="Date de naissance"
+      name="conjointDateNaissance"
+      inputMode="numeric"
+      value={formData.conjointDateNaissance || ""}
+      onChange={(e) => {
+        const masked = masquerDateNaissance(e.target.value);
+        setFormData({ ...formData, conjointDateNaissance: masked });
+        if (user) updateDoc(doc(db, "dossiers", user.uid), { conjointDateNaissance: masked });
+      }}
+      placeholder="JJ.MM.AAAA"
+      fullWidth
+      margin="normal"
+    />
+
+    <FormControl fullWidth margin="normal">
+      <InputLabel>Nationalité</InputLabel>
+      <Select
+        name="conjointNationalite"
+        value={formData.conjointNationalite || ""}
+        onChange={handleChange}
+        label="Nationalité"
+      >
+       <MenuItem value="">-- Nationalité --</MenuItem>
+    <MenuItem value="Suisse">Suisse</MenuItem>
+  <MenuItem value="Allemange">Allemagne</MenuItem>
+  <MenuItem value="Italie">Italie</MenuItem>
+  <MenuItem value="France">France</MenuItem>
+  <MenuItem value="Afghanistan">Afghanistan</MenuItem>
+    <MenuItem value="Afrique du Sud">Afrique du Sud</MenuItem>
+    <MenuItem value="Albanie">Albanie</MenuItem>
+    <MenuItem value="Algérie">Algérie</MenuItem>
+    <MenuItem value="Andorre">Andorre</MenuItem>
+    <MenuItem value="Angola">Angola</MenuItem>
+    <MenuItem value="Antigua-et-Barbuda">Antigua-et-Barbuda</MenuItem>
+    <MenuItem value="Arabie Saoudite">Arabie Saoudite</MenuItem>
+    <MenuItem value="Argentine">Argentine</MenuItem>
+    <MenuItem value="Arménie">Arménie</MenuItem>
+    <MenuItem value="Australie">Australie</MenuItem>
+    <MenuItem value="Autriche">Autriche</MenuItem>
+    <MenuItem value="Azerbaïdjan">Azerbaïdjan</MenuItem>
+    <MenuItem value="Bahamas">Bahamas</MenuItem>
+    <MenuItem value="Bahreïn">Bahreïn</MenuItem>
+    <MenuItem value="Bangladesh">Bangladesh</MenuItem>
+    <MenuItem value="Barbade">Barbade</MenuItem>
+    <MenuItem value="Belgique">Belgique</MenuItem>
+    <MenuItem value="Belize">Belize</MenuItem>
+    <MenuItem value="Bénin">Bénin</MenuItem>
+    <MenuItem value="Bhoutan">Bhoutan</MenuItem>
+    <MenuItem value="Biélorussie">Biélorussie</MenuItem>
+    <MenuItem value="Birmanie">Birmanie</MenuItem>
+    <MenuItem value="Bolivie">Bolivie</MenuItem>
+    <MenuItem value="Bosnie-Herzégovine">Bosnie-Herzégovine</MenuItem>
+    <MenuItem value="Botswana">Botswana</MenuItem>
+    <MenuItem value="Brésil">Brésil</MenuItem>
+    <MenuItem value="Brunei">Brunei</MenuItem>
+    <MenuItem value="Bulgarie">Bulgarie</MenuItem>
+    <MenuItem value="Burkina Faso">Burkina Faso</MenuItem>
+    <MenuItem value="Burundi">Burundi</MenuItem>
+    <MenuItem value="Cambodge">Cambodge</MenuItem>
+    <MenuItem value="Cameroun">Cameroun</MenuItem>
+    <MenuItem value="Canada">Canada</MenuItem>
+    <MenuItem value="Cap-Vert">Cap-Vert</MenuItem>
+    <MenuItem value="Chili">Chili</MenuItem>
+    <MenuItem value="Chine">Chine</MenuItem>
+    <MenuItem value="Chypre">Chypre</MenuItem>
+    <MenuItem value="Colombie">Colombie</MenuItem>
+    <MenuItem value="Comores">Comores</MenuItem>
+    <MenuItem value="Congo (Brazzaville)">Congo (Brazzaville)</MenuItem>
+    <MenuItem value="Congo (Kinshasa)">Congo (Kinshasa)</MenuItem>
+    <MenuItem value="Corée du Nord">Corée du Nord</MenuItem>
+    <MenuItem value="Corée du Sud">Corée du Sud</MenuItem>
+    <MenuItem value="Costa Rica">Costa Rica</MenuItem>
+    <MenuItem value="Côte d'Ivoire">Côte d'Ivoire</MenuItem>
+    <MenuItem value="Croatie">Croatie</MenuItem>
+    <MenuItem value="Cuba">Cuba</MenuItem>
+    <MenuItem value="Danemark">Danemark</MenuItem>
+    <MenuItem value="Djibouti">Djibouti</MenuItem>
+    <MenuItem value="Dominique">Dominique</MenuItem>
+    <MenuItem value="Égypte">Égypte</MenuItem>
+    <MenuItem value="Émirats Arabes Unis">Émirats Arabes Unis</MenuItem>
+    <MenuItem value="Équateur">Équateur</MenuItem>
+    <MenuItem value="Érythrée">Érythrée</MenuItem>
+    <MenuItem value="Espagne">Espagne</MenuItem>
+    <MenuItem value="Estonie">Estonie</MenuItem>
+    <MenuItem value="Eswatini">Eswatini</MenuItem>
+    <MenuItem value="États-Unis">États-Unis</MenuItem>
+    <MenuItem value="Éthiopie">Éthiopie</MenuItem>
+    <MenuItem value="Fidji">Fidji</MenuItem>
+    <MenuItem value="Finlande">Finlande</MenuItem>
+    <MenuItem value="Gabon">Gabon</MenuItem>
+    <MenuItem value="Gambie">Gambie</MenuItem>
+    <MenuItem value="Géorgie">Géorgie</MenuItem>
+    <MenuItem value="Ghana">Ghana</MenuItem>
+    <MenuItem value="Grèce">Grèce</MenuItem>
+    <MenuItem value="Grenade">Grenade</MenuItem>
+    <MenuItem value="Guatemala">Guatemala</MenuItem>
+    <MenuItem value="Guinée">Guinée</MenuItem>
+    <MenuItem value="Guinée équatoriale">Guinée équatoriale</MenuItem>
+    <MenuItem value="Guinée-Bissau">Guinée-Bissau</MenuItem>
+    <MenuItem value="Guyana">Guyana</MenuItem>
+    <MenuItem value="Haïti">Haïti</MenuItem>
+    <MenuItem value="Honduras">Honduras</MenuItem>
+    <MenuItem value="Hongrie">Hongrie</MenuItem>
+    <MenuItem value="Inde">Inde</MenuItem>
+    <MenuItem value="Indonésie">Indonésie</MenuItem>
+    <MenuItem value="Irak">Irak</MenuItem>
+    <MenuItem value="Iran">Iran</MenuItem>
+    <MenuItem value="Irlande">Irlande</MenuItem>
+    <MenuItem value="Islande">Islande</MenuItem>
+    <MenuItem value="Israël">Israël</MenuItem>
+    <MenuItem value="Jamaïque">Jamaïque</MenuItem>
+    <MenuItem value="Japon">Japon</MenuItem>
+    <MenuItem value="Jordanie">Jordanie</MenuItem>
+    <MenuItem value="Kazakhstan">Kazakhstan</MenuItem>
+    <MenuItem value="Kenya">Kenya</MenuItem>
+    <MenuItem value="Kirghizistan">Kirghizistan</MenuItem>
+    <MenuItem value="Kiribati">Kiribati</MenuItem>
+    <MenuItem value="Koweït">Koweït</MenuItem>
+    <MenuItem value="Laos">Laos</MenuItem>
+    <MenuItem value="Lesotho">Lesotho</MenuItem>
+    <MenuItem value="Lettonie">Lettonie</MenuItem>
+    <MenuItem value="Liban">Liban</MenuItem>
+    <MenuItem value="Libéria">Libéria</MenuItem>
+    <MenuItem value="Libye">Libye</MenuItem>
+    <MenuItem value="Liechtenstein">Liechtenstein</MenuItem>
+    <MenuItem value="Lituanie">Lituanie</MenuItem>
+    <MenuItem value="Luxembourg">Luxembourg</MenuItem>
+    <MenuItem value="Macédoine du Nord">Macédoine du Nord</MenuItem>
+    <MenuItem value="Madagascar">Madagascar</MenuItem>
+    <MenuItem value="Malaisie">Malaisie</MenuItem>
+    <MenuItem value="Malawi">Malawi</MenuItem>
+    <MenuItem value="Maldives">Maldives</MenuItem>
+    <MenuItem value="Mali">Mali</MenuItem>
+    <MenuItem value="Malte">Malte</MenuItem>
+    <MenuItem value="Maroc">Maroc</MenuItem>
+    <MenuItem value="Îles Marshall">Îles Marshall</MenuItem>
+    <MenuItem value="Maurice">Maurice</MenuItem>
+    <MenuItem value="Mauritanie">Mauritanie</MenuItem>
+    <MenuItem value="Mexique">Mexique</MenuItem>
+    <MenuItem value="Micronésie">Micronésie</MenuItem>
+    <MenuItem value="Moldavie">Moldavie</MenuItem>
+    <MenuItem value="Monaco">Monaco</MenuItem>
+    <MenuItem value="Mongolie">Mongolie</MenuItem>
+    <MenuItem value="Monténégro">Monténégro</MenuItem>
+    <MenuItem value="Mozambique">Mozambique</MenuItem>
+    <MenuItem value="Myanmar (Birmanie)">Myanmar (Birmanie)</MenuItem>
+    <MenuItem value="Namibie">Namibie</MenuItem>
+    <MenuItem value="Nauru">Nauru</MenuItem>
+    <MenuItem value="Népal">Népal</MenuItem>
+    <MenuItem value="Nicaragua">Nicaragua</MenuItem>
+    <MenuItem value="Niger">Niger</MenuItem>
+    <MenuItem value="Nigéria">Nigéria</MenuItem>
+    <MenuItem value="Norvège">Norvège</MenuItem>
+    <MenuItem value="Nouvelle-Zélande">Nouvelle-Zélande</MenuItem>
+    <MenuItem value="Oman">Oman</MenuItem>
+    <MenuItem value="Ouganda">Ouganda</MenuItem>
+    <MenuItem value="Ouzbékistan">Ouzbékistan</MenuItem>
+    <MenuItem value="Pakistan">Pakistan</MenuItem>
+    <MenuItem value="Palaos">Palaos</MenuItem>
+    <MenuItem value="Palestine">Palestine</MenuItem>
+    <MenuItem value="Panama">Panama</MenuItem>
+    <MenuItem value="Papouasie-Nouvelle-Guinée">Papouasie-Nouvelle-Guinée</MenuItem>
+    <MenuItem value="Paraguay">Paraguay</MenuItem>
+    <MenuItem value="Pays-Bas">Pays-Bas</MenuItem>
+    <MenuItem value="Pérou">Pérou</MenuItem>
+    <MenuItem value="Philippines">Philippines</MenuItem>
+    <MenuItem value="Pologne">Pologne</MenuItem>
+    <MenuItem value="Portugal">Portugal</MenuItem>
+    <MenuItem value="Qatar">Qatar</MenuItem>
+    <MenuItem value="République centrafricaine">République centrafricaine</MenuItem>
+    <MenuItem value="République démocratique du Congo">République démocratique du Congo</MenuItem>
+    <MenuItem value="République dominicaine">République dominicaine</MenuItem>
+    <MenuItem value="République tchèque">République tchèque</MenuItem>
+    <MenuItem value="Roumanie">Roumanie</MenuItem>
+    <MenuItem value="Royaume-Uni">Royaume-Uni</MenuItem>
+    <MenuItem value="Russie">Russie</MenuItem>
+    <MenuItem value="Rwanda">Rwanda</MenuItem>
+    <MenuItem value="Saint-Christophe-et-Niévès">Saint-Christophe-et-Niévès</MenuItem>
+    <MenuItem value="Saint-Marin">Saint-Marin</MenuItem>
+    <MenuItem value="Saint-Vincent-et-les-Grenadines">Saint-Vincent-et-les-Grenadines</MenuItem>
+    <MenuItem value="Sainte-Lucie">Sainte-Lucie</MenuItem>
+    <MenuItem value="Salomon">Salomon</MenuItem>
+    <MenuItem value="Salvador">Salvador</MenuItem>
+    <MenuItem value="Samoa">Samoa</MenuItem>
+    <MenuItem value="São Tomé-et-Principe">São Tomé-et-Principe</MenuItem>
+    <MenuItem value="Sénégal">Sénégal</MenuItem>
+    <MenuItem value="Serbie">Serbie</MenuItem>
+    <MenuItem value="Seychelles">Seychelles</MenuItem>
+    <MenuItem value="Sierra Leone">Sierra Leone</MenuItem>
+    <MenuItem value="Singapour">Singapour</MenuItem>
+    <MenuItem value="Slovaquie">Slovaquie</MenuItem>
+    <MenuItem value="Slovénie">Slovénie</MenuItem>
+    <MenuItem value="Somalie">Somalie</MenuItem>
+    <MenuItem value="Soudan">Soudan</MenuItem>
+    <MenuItem value="Soudan du Sud">Soudan du Sud</MenuItem>
+    <MenuItem value="Sri Lanka">Sri Lanka</MenuItem>
+    <MenuItem value="Suède">Suède</MenuItem>
+    <MenuItem value="Suriname">Suriname</MenuItem>
+    <MenuItem value="Syrie">Syrie</MenuItem>
+    <MenuItem value="Tadjikistan">Tadjikistan</MenuItem>
+    <MenuItem value="Tanzanie">Tanzanie</MenuItem>
+    <MenuItem value="Tchad">Tchad</MenuItem>
+    <MenuItem value="Thaïlande">Thaïlande</MenuItem>
+    <MenuItem value="Timor oriental">Timor oriental</MenuItem>
+    <MenuItem value="Togo">Togo</MenuItem>
+    <MenuItem value="Tonga">Tonga</MenuItem>
+    <MenuItem value="Trinité-et-Tobago">Trinité-et-Tobago</MenuItem>
+    <MenuItem value="Tunisie">Tunisie</MenuItem>
+    <MenuItem value="Turkménistan">Turkménistan</MenuItem>
+    <MenuItem value="Turquie">Turquie</MenuItem>
+    <MenuItem value="Tuvalu">Tuvalu</MenuItem>
+    <MenuItem value="Ukraine">Ukraine</MenuItem>
+    <MenuItem value="Uruguay">Uruguay</MenuItem>
+    <MenuItem value="Vanuatu">Vanuatu</MenuItem>
+    <MenuItem value="Vatican">Vatican</MenuItem>
+    <MenuItem value="Venezuela">Venezuela</MenuItem>
+    <MenuItem value="Viêt Nam">Viêt Nam</MenuItem>
+    <MenuItem value="Yémen">Yémen</MenuItem>
+    <MenuItem value="Zambie">Zambie</MenuItem>
+    <MenuItem value="Zimbabwe">Zimbabwe</MenuItem>
+        {/* tu peux continuer la liste ici comme pour la première personne */}
+      </Select>
+    </FormControl>
+
+    {formData.conjointNationalite && formData.conjointNationalite !== "Suisse" && (
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Permis de séjour</InputLabel>
+        <Select
+          name="conjointPermisSejour"
+          value={formData.conjointPermisSejour || ""}
+          onChange={handleChange}
+          label="Permis de séjour"
+        >
+          <MenuItem value="">-- Sélectionner le permis --</MenuItem>
+          <MenuItem value="B">Permis B</MenuItem>
+          <MenuItem value="C">Permis C</MenuItem>
+          <MenuItem value="L">Permis L</MenuItem>
+          <MenuItem value="G">Permis G</MenuItem>
+        </Select>
+      </FormControl>
+    )}
+
+    <FormControl fullWidth margin="normal">
+      <InputLabel>État civil</InputLabel>
+      <Select
+        name="conjointEtatCivil"
+        value={formData.conjointEtatCivil || ""}
+        onChange={handleChange}
+        label="État civil"
+      >
+        <MenuItem value="">-- État civil --</MenuItem>
+        <MenuItem value="celibataire">Célibataire</MenuItem>
+        <MenuItem value="marie">Marié(e)</MenuItem>
+        <MenuItem value="divorce">Divorcé(e)</MenuItem>
+        <MenuItem value="veuf">Veuf / Veuve</MenuItem>
+      </Select>
+    </FormControl>
+
+    <TextField
+      label="Formation"
+      name="conjointFormation"
+      value={formData.conjointFormation || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+
+    <TextField
+      label="Profession"
+      name="conjointProfession"
+      value={formData.conjointProfession || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+
+    <TextField
+      label="Fonction (Employé, Directeur, etc.)"
+      name="conjointFonction"
+      value={formData.conjointFonction || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+
+    <TextField
+      label="Employeur"
+      name="conjointEmployeur"
+      value={formData.conjointEmployeur || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
+
+    <TextField
+      label="Adresse employeur (NPA Localité)"
+      name="conjointAdresseEmployeur"
+      value={formData.conjointAdresseEmployeur || ""}
+      onChange={handleChange}
+      fullWidth
+      margin="normal"
+    />
   </>
 )}
-<label>Etat civil</label><br />
-            <select name="conjointEtatCivil" value={formData.conjointEtatCivil || ""} onChange={handleChange}>
-                    <option value="">-- État civil --</option>
-                    <option value="celibataire">Célibataire</option>
-                    <option value="marie">Marié(e)</option>
-                     <option value="divorce">Divorcé(e)</option>
-                    <option value="veuf">Veuf / Veuve</option>
-            </select><br />
-
-    <label>Formation</label><br />  
-              <input name="conjointFormation" value={formData.conjointFormation || ""} onChange={handleChange} placeholder="Formation" /><br />
-    <label>Profession</label><br />
-              <input name="conjointProfession" value={formData.conjointProfession || ""} onChange={handleChange} placeholder="Profession" /><br />
-    <label>Fonction (Employé, directeur, etc.)</label><br />
-              <input name="conjointFonction" value={formData.conjointFonction || ""} onChange={handleChange} placeholder="Fonction" /><br />
-    <label>Employeur</label><br /> 
-              <input name="conjointEmployeur" value={formData.conjointEmployeur || ""} onChange={handleChange} placeholder="Nom de l’employeur" /><br />
-    <label>Adresse employeur (NPA Localité)</label><br />
-              <input name="conjointAdresseEmployeur" value={formData.conjointAdresseEmployeur || ""} onChange={handleChange} placeholder="Adresse de l’employeur" /><br />
-            </>
-          )}
         </>
       )}
       {step === 2 && (
