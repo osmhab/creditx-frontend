@@ -1,98 +1,103 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const { OpenAI } = require('openai');
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { OpenAI } from "openai";
 
 dotenv.config();
 const app = express();
-const port = 5050;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-app.post('/estimation', async (req, res) => {
-  const { localisation, surface, standing, annee, terrain, prixSouhaite, nombrePieces, terrasse, piscine, ascenseur, etages } = req.body;
-
-  const prompt = `
-  Tu es un expert en évaluation immobilière en Suisse.
-  Estime la valeur d'un bien immobilier avec les caractéristiques suivantes :
-  
-  - Localisation : ${localisation}
-  - Surface habitable : ${surface} m²
-  - Surface du terrain : ${terrain} m²
-  - Année de construction : ${annee}
-  - Standing : ${standing}
-  - Nombre de pièces : ${nombrePieces}
-  - Terrasse : ${terrasse ? terrasse + ' m²' : 'Aucune terrasse'}
-  - Piscine : ${piscine ? 'Oui' : 'Non'}
-  - Ascenseur : ${ascenseur ? 'Oui' : 'Non'}
-  - Nombre d'étages : ${etages}
-
-  Donne une estimation de prix réaliste en CHF sous la forme de trois valeurs :
-  
-  1. Valeur moyenne estimée : [Valeur]
-  2. Valeur inférieure estimée : [Valeur]
-  3. Valeur supérieure estimée : [Valeur]
-  
-  N'inclus aucun autre texte. Présente ces valeurs uniquement dans l'ordre ci-dessus.
-  `;
-
+app.post("/api/estimation", async (req, res) => {
   try {
-    const chat = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "gpt-4",
-      temperature: 0.7,
-    });
+    const { formData } = req.body;
 
-    const resultText = chat.choices[0].message.content;
-    console.log("Texte brut de GPT-4 :", resultText);
+    const prompt = `
+Tu es un expert en financement hypothécaire en Suisse.
+Estime les deux valeurs suivantes à partir des données ci-dessous :
+1. La valeur de marché la plus réaliste en CHF
+2. La valeur qu'une banque pourrait reconnaître en CHF
 
-    // Extraction simple des valeurs estimées
-    const values = resultText.split("\n");
-    const estimatedValue = values[0]?.split(":")[1]?.trim(); 
-    const lowerValue = values[1]?.split(":")[1]?.trim();
-    const upperValue = values[2]?.split(":")[1]?.trim();
+Voici les données :
+- Type de bien : ${formData.sousTypeBien}
+- Adresse : ${formData.adresseComplete || "non spécifiée"}
+- Année de construction : ${formData.anneeConstruction}
+- Année(s) de rénovation : ${formData.anneeRenovation}
+- État : ${formData.etatBien}
+- Type de construction : ${formData.typeConstruction}
+- Surface brute : ${formData.surfaceHabitable} m²
+${formData.sousTypeBien !== "appartement" ? `- Surface terrain : ${formData.surfaceTerrain} m²` : ""}
+- Surface jardin : ${formData.surfaceJardin} m²
+- Surface terrasse/balcon : ${formData.surfaceTerrasse} m²
+- Nombre de pièces : ${formData.nombrePieces}
+- Nombre de salles d’eau : ${formData.nombreSallesEau}
+- Type de chauffage : ${formData.chauffage}
+- Photovoltaïque : ${formData.photovoltaique}
+- Solaires thermiques : ${formData.solairesThermiques}
+- Distribution de chaleur : ${formData.distributionChaleur}
+- Certificats : ${(formData.certificats || []).join(", ") || "aucun"}
+${formData.sousTypeBien === "appartement" ? `- Quote-part PPE : ${formData.quotePart} ‰` : ""}
 
-    // Nettoyage des espaces et conversion des valeurs en nombres
-    const estimatedValueNumber = parseFloat(estimatedValue.replace(/\s/g, '').replace(',', ''));
-    const lowerValueNumber = parseFloat(lowerValue.replace(/\s/g, '').replace(',', ''));
-    const upperValueNumber = parseFloat(upperValue.replace(/\s/g, '').replace(',', ''));
+Réponds uniquement avec ce format JSON strict **sans aucun mot autour** :
+{
+  "valeurEstimeeMarche": 800000,
+  "valeurEstimeeBanque": 760000
+}
+`;
 
-    // Comparaison avec le prix souhaité
-    const prixSouhaiteNumber = parseFloat(prixSouhaite.replace(/\s/g, '').replace(',', ''));
+    const estimations = [];
 
-    let warningMessage = '';
-    let successMessage = '';
+    for (let i = 0; i < 5; i++) {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "Tu es un expert hypothécaire suisse." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+      });
 
-    // Comparaison du prix souhaité avec l'estimation
-    if (prixSouhaiteNumber > upperValueNumber) {
-      warningMessage = `Avertissement : Le prix que vous souhaitez payer est supérieur à l'estimation de l'IA pour cette propriété. Selon le marché immobilier actuel dans la région de ${localisation}, il est possible que le prix soit surestimé.`;
-    } else if (prixSouhaiteNumber < lowerValueNumber) {
-      warningMessage = `Avertissement : Le prix que vous souhaitez payer est inférieur à l'estimation de l'IA pour cette propriété. Vous pourriez envisager d'augmenter votre offre pour mieux correspondre à la valeur estimée.`;
-    } else {
-      successMessage = `OK. Le prix souhaité est dans la fourchette estimée par l'IA.`;
+      const content = completion.choices?.[0]?.message?.content;
+      console.log(`🔁 Estimation ${i + 1} :`, content);
+
+      try {
+        const parsed = JSON.parse(content);
+        estimations.push(parsed);
+      } catch (err) {
+        console.error(`❌ Erreur parsing JSON estimation ${i + 1} :`, content);
+      }
     }
 
-    console.log("Valeurs extraites : ", { estimatedValue, lowerValue, upperValue });
+    if (estimations.length === 0) {
+      throw new Error("Aucune estimation valide reçue.");
+    }
 
-    res.json({
-      averageValue: estimatedValue,
-      lowerValue: lowerValue,
-      upperValue: upperValue,
-      warningMessage: warningMessage,  // Message d'avertissement
-      successMessage: successMessage,  // Message de succès
-    });
+    const moyenne = estimations.reduce(
+      (acc, curr) => {
+        acc.valeurEstimeeMarche += curr.valeurEstimeeMarche;
+        acc.valeurEstimeeBanque += curr.valeurEstimeeBanque;
+        return acc;
+      },
+      { valeurEstimeeMarche: 0, valeurEstimeeBanque: 0 }
+    );
+
+    const valeurEstimeeMarche = Math.round(moyenne.valeurEstimeeMarche / estimations.length);
+    const valeurEstimeeBanque = Math.round(moyenne.valeurEstimeeBanque / estimations.length);
+
+    res.json({ valeurEstimeeMarche, valeurEstimeeBanque });
 
   } catch (err) {
-    console.error("🔥 Erreur OpenAI :", err);
-    res.status(500).json({ error: "Erreur lors de l'appel à OpenAI", details: err.message });
+    console.error("❌ Erreur backend /api/estimation :", err);
+    res.status(500).json({ error: "Erreur interne serveur estimation." });
   }
 });
 
 app.listen(port, () => {
-  console.log(`✅ Backend IA lancé sur http://localhost:${port}`);
+  console.log(`✅ Serveur backend actif sur http://localhost:${port}`);
 });
