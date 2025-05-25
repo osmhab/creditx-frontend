@@ -5,7 +5,7 @@ import { OpenAI } from "openai";
 
 dotenv.config();
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5050;
 
 app.use(cors());
 app.use(express.json());
@@ -16,7 +16,7 @@ const openai = new OpenAI({
 
 app.post("/api/estimation", async (req, res) => {
   try {
-    const { formData } = req.body;
+    const { formData: bien } = req.body;
 
     const prompt = `
 Tu es un expert en financement hypothécaire en Suisse.
@@ -25,24 +25,28 @@ Estime les deux valeurs suivantes à partir des données ci-dessous :
 2. La valeur qu'une banque pourrait reconnaître en CHF
 
 Voici les données :
-- Type de bien : ${formData.sousTypeBien}
-- Adresse : ${formData.adresseComplete || "non spécifiée"}
-- Année de construction : ${formData.anneeConstruction}
-- Année(s) de rénovation : ${formData.anneeRenovation}
-- État : ${formData.etatBien}
-- Type de construction : ${formData.typeConstruction}
-- Surface brute : ${formData.surfaceHabitable} m²
-${formData.sousTypeBien !== "appartement" ? `- Surface terrain : ${formData.surfaceTerrain} m²` : ""}
-- Surface jardin : ${formData.surfaceJardin} m²
-- Surface terrasse/balcon : ${formData.surfaceTerrasse} m²
-- Nombre de pièces : ${formData.nombrePieces}
-- Nombre de salles d’eau : ${formData.nombreSallesEau}
-- Type de chauffage : ${formData.chauffage}
-- Photovoltaïque : ${formData.photovoltaique}
-- Solaires thermiques : ${formData.solairesThermiques}
-- Distribution de chaleur : ${formData.distributionChaleur}
-- Certificats : ${(formData.certificats || []).join(", ") || "aucun"}
-${formData.sousTypeBien === "appartement" ? `- Quote-part PPE : ${formData.quotePart} ‰` : ""}
+- Type de bien : ${bien.type || "non spécifié"}
+- Adresse : ${bien.adresseComplete || "non spécifiée"}
+- NPA Localité : ${bien.npaLocalite}
+- Année de construction : ${bien.anneeConstruction || "non spécifiée"}
+- Année(s) de rénovation : ${bien.anneeRenovation || "non spécifiée"}
+- Type de construction : ${bien.typeConstruction || "non spécifié"}
+- État : ${bien.etat || "non spécifié"}
+- Orientation : non précisé
+- Type de construction : Construction traditionnelle
+- Surface brute : ${bien.surfaceHabitable || 0} m²
+- Surface terrain : ${bien.surfaceTerrain || 0} m²
+- Surface jardin : ${bien.surfaceJardin || 0} m²
+- Surface terrasse/balcon : ${bien.surfaceBalcon || 0} m²
+- Nombre de pièces : ${bien.nbPieces || 0}
+- Nombre de salles d’eau : ${bien.nbSallesEau || 0}
+- Type de chauffage : ${bien.chauffageType || "non spécifié"}
+- Distribution de chaleur : ${bien.chauffageDistribution || "non spécifiée"}
+- Nombre de places de parc intérieures : ${bien.placesInt || 0}
+- Nombre de places de parc extérieures : ${bien.placesExt || 0}
+- Photovoltaïque : non précisé
+- Solaires thermiques : non précisé
+- Certificats : non précisés
 
 Réponds uniquement avec ce format JSON strict **sans aucun mot autour** :
 {
@@ -67,8 +71,13 @@ Réponds uniquement avec ce format JSON strict **sans aucun mot autour** :
       console.log(`🔁 Estimation ${i + 1} :`, content);
 
       try {
-        const parsed = JSON.parse(content);
-        estimations.push(parsed);
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          estimations.push(parsed);
+        } else {
+          console.error(`❌ Aucun bloc JSON valide dans :`, content);
+        }
       } catch (err) {
         console.error(`❌ Erreur parsing JSON estimation ${i + 1} :`, content);
       }

@@ -56,6 +56,9 @@ const ModalNouvelEmployeur = ({ open, onClose, onSave, initialData }) => {
     return [0, 1, 2].map((offset) => currentYear - offset).filter((year) => debutYear <= year);
   };
 
+
+
+
   useEffect(() => {
     if (!open) return;
     if (initialData) {
@@ -194,7 +197,7 @@ const ModalNouvelEmployeur = ({ open, onClose, onSave, initialData }) => {
                 {!revenusReguliers && anneesRevenus().map((year) => (
                   <ChampMontantSimple
                     key={`revenu-${year}`}
-                    label={`Revenu annuel brut ${year}`}
+                    label={`Revenu annuel brut (sans le bonus) ${year}`}
                     value={revenusIrr[`revenuAnnuel${year}`] || 0}
                     onChange={(val) => setRevenusIrr((prev) => ({ ...prev, [`revenuAnnuel${year}`]: val }))}
                   />

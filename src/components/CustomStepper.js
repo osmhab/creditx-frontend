@@ -14,7 +14,7 @@ const CustomStepper = ({ activeStep }) => {
   return (
     <Box
       display="flex"
-      borderBottom="1px solid #e0e0e0"
+      borderBottom= "1px solid #f5f5f5"// plus subtil
       position="relative"
       mb={4}
     >
@@ -29,7 +29,6 @@ const CustomStepper = ({ activeStep }) => {
             textAlign="center"
             py={2}
             sx={{
-              borderRight: index < steps.length - 1 ? "1px solid #ddd" : "none",
               backgroundColor: "#fff",
             }}
           >
@@ -38,9 +37,9 @@ const CustomStepper = ({ activeStep }) => {
               alignItems="center"
               justifyContent="center"
               border="2px solid"
-              borderColor={isActive || isCompleted ? "blue" : "#ccc"}
-              bgcolor={isActive ? "blue" : "#fff"}
-              color={isActive ? "#fff" : isCompleted ? "blue" : "#999"}
+              borderColor={isActive || isCompleted ? "primary.main" : "#ccc"}
+              bgcolor={isActive ? "primary.main" : "#fff"}
+              color={isActive ? "#fff" : isCompleted ? "primary.main" : "#999"}
               borderRadius="50%"
               width={28}
               height={28}
@@ -62,16 +61,17 @@ const CustomStepper = ({ activeStep }) => {
         );
       })}
 
-      {/* Barre de progression orange */}
+ 
       <Box
-        position="absolute"
-        bottom={0}
-        left={0}
-        height="4px"
-        bgcolor="orange"
-        width={`${((activeStep - 1) / (steps.length - 1)) * 100}%`}
-        transition="width 0.3s"
-      />
+  position="absolute"
+  bottom={0}
+  left={0}
+  height="4px"
+  bgcolor="secondary.main"
+  width={`${((activeStep - 1) / (steps.length - 1)) * 100}%`}
+  sx={{ transition: "width 0.3s" }}
+/>
+
     </Box>
   );
 };

@@ -4,20 +4,26 @@ import { db } from "./firebase-config";
 import { useAuth } from "./AuthContext";
 import { useLocation } from "react-router-dom";
 
+
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import { CircularProgress, Container, Box, Typography, Button } from "@mui/material";
 import { Collapse } from "@mui/material";
+import { Alert } from "@mui/material";
+
 
 
 import Etape0ChoixProduit from "./components/Etape0ChoixProduit";
 import Etape1Personnes from "./components/Etape1Personnes";
 import Etape1InformationsPersonnelles from "./components/Etape1InformationsPersonnelles";
 import Etape2SituationFinanciere from "./components/Etape2SituationFinanciere";
-import Etape3Financement from "./components/Etape3Financement";
+import Etape3Produit from "./Etape3Produit";
+import NouvelleEtape3Financement from "./components/NouvelleEtape3Financement";
 import Etape4Immeuble from "./components/Etape4Immeuble";
 import Etape5Documents from "./components/Etape5Documents";
 import CustomStepper from "./components/CustomStepper";
 import { estimerValeurBienAvecOpenAI } from "./utils/estimationAI";
+import ModalFaisabilite from "./ModalFaisabiliteCredit";
+
 
 
 
@@ -32,6 +38,10 @@ function FormulaireDossier() {
   const [etape3Valide, setEtape3Valide] = useState(false);
   const [loadingContinuer, setLoadingContinuer] = useState(false);
   const [documentsComplets, setDocumentsComplets] = useState(false);
+  const [personneAvecPoursuitesIndex, setPersonneAvecPoursuitesIndex] = useState(null);
+  const [ouvrirQuestionnaireDepuisAlerte, setOuvrirQuestionnaireDepuisAlerte] = useState(false);
+  const [modalFaisabiliteOpen, setModalFaisabiliteOpen] = useState(false);
+
 
   const docRef = user ? doc(db, "dossiers", user.uid) : null;
 
@@ -52,19 +62,24 @@ function FormulaireDossier() {
         const emptyDossier = {
           etape: 0,
           produit: "",
+          personnes: [],
           dateCreation: new Date().toISOString(),
           userId: user.uid,
         };
-  
+      
         try {
           await updateDoc(ref, emptyDossier);
+          const newSnap = await getDoc(ref);
+          setFormData(newSnap.data());
         } catch {
           await setDoc(ref, emptyDossier);
+          const snapAfterSet = await getDoc(ref);
+          setFormData(snapAfterSet.data());
         }
-  
-        setFormData(emptyDossier);
+      
         setStep(0);
-      } else if (snap.exists()) {
+      }
+       else if (snap.exists()) {
         const data = snap.data();
         setFormData(data);
         setStep(data.produit ? data.etape : 0);
@@ -91,6 +106,17 @@ function FormulaireDossier() {
       await updateDoc(doc(db, "dossiers", user.uid), { [name]: value });
     }
   };
+
+  const reloadFormData = async () => {
+    if (!user) return;
+    const ref = doc(db, "dossiers", user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data();
+      setFormData(data);
+    }
+  };
+  
 
   const saveStep = async (newStep) => {
     setStep(newStep);
@@ -119,8 +145,43 @@ function FormulaireDossier() {
     return Number(digits).toLocaleString("fr-CH").replace(/\s/g, "’");
   };
 
+  const etape2Valide = formData?.personnes?.every((personne) =>
+    Array.isArray(personne.employeurs) &&
+    personne.employeurs.length > 0 &&
+    personne.questionnaireComplet === true
+  );
+  
+  const poursuitesDeclarees = formData?.personnes?.some(
+    (p) => p.aDesPoursuites === true
+  );
+
+
+  const corrigerPoursuites = () => {
+    const index = formData?.personnes?.findIndex(
+      (p) => p.aDesPoursuites === true
+    );
+    if (index !== -1) {
+      setStep(2); // Aller à l’étape 2
+  
+      // ⏳ Attendre que la page ait le temps de se rendre (important)
+      setTimeout(() => {
+        const boutons = document.querySelectorAll('[data-bouton-questionnaire]');
+        const bouton = boutons[index]; // ex: personne 0, personne 1, etc.
+        if (bouton) bouton.click();
+      }, 300);
+    }
+  };
+  
+  
+  
+  
+  
+  
+  
+
   return (
-    <Box sx={{ background: "#f9f9f9", minHeight: "100vh", py: 4 }}>
+    <Box sx={{ background: "#ffffff", minHeight: "100vh", py: 4 }}>
+
       <Container maxWidth="lg">
         <CustomStepper activeStep={step} />
 
@@ -151,41 +212,50 @@ function FormulaireDossier() {
 
 
         {step === 2 && (
-          <Etape2SituationFinanciere
-            formData={formData}
-            setFormData={setFormData}
-            handleChange={handleChange}
-            user={user}
-            docRef={docRef}
-          />
-        )}
+  <Etape2SituationFinanciere
+    formData={formData}
+    setFormData={setFormData}
+    handleChange={handleChange}
+    user={user}
+    docRef={docRef}
+    refreshFormData={reloadFormData}
+    ouvrirModalPourIndex={personneAvecPoursuitesIndex}
+    ouvrirModalSiDemande={ouvrirQuestionnaireDepuisAlerte}
+  />
+)}
+
 
 
         {step === 3 && (
-          <Etape2SituationFinanciere
-            formData={formData}
-            setFormData={setFormData}
-            handleChange={handleChange}
-            user={user}
-            docRef={docRef}
-          />
-        )}
+  <Etape3Produit
+    selectedProduit={formData.produit}
+    onSelectProduit={async (val) => {
+      const newData = { ...formData, produit: val };
+      setFormData(newData);
+      if (user) {
+        await updateDoc(doc(db, "dossiers", user.uid), {
+          produit: val,
+          etape: 4 // passer automatiquement à l'étape suivante
+        });
+      }
+      setStep(4);
+    }}
+  />
+)}
 
-        {step === 4 && (
-          <Etape3Financement
-            formData={formData}
-            setFormData={setFormData}
-            handleChange={handleChange}
-            user={user}
-            formaterMilliers={formaterMilliers}
-            calculEffectue={calculEffectue}
-            erreurFondPropre={erreurFondPropre}
-            etape3Valide={etape3Valide}
-            setCalculEffectue={setCalculEffectue}
-            setErreurFondPropre={setErreurFondPropre}
-            setEtape3Valide={setEtape3Valide}
-          />
-        )}
+
+{step === 4 && (
+  <NouvelleEtape3Financement
+    formData={formData}
+    setFormData={setFormData}
+    docRef={docRef}
+    onContinuer={nextStep} // ✅ à transmettre
+  />
+)}
+
+
+
+
 
         {step === 5 && (
           <Etape4Immeuble
@@ -203,97 +273,122 @@ function FormulaireDossier() {
         )}
 
         {step > 0 && step <= 6 && (
-          <Box mt={4} display="flex" justifyContent="space-between" gap={2}>
-            {step > 1 && (
-              <Button
-                variant="outlined"
-                startIcon={<ArrowBack />}
-                sx={{ minWidth: 150, height: 56 }}
-                onClick={prevStep}
-              >
-                Retour
-              </Button>
-            )}
+  <>
+    {/* ✅ Message d'erreur en cas de poursuites - au-dessus du bloc de boutons */}
+    {step === 2 && poursuitesDeclarees && (
+      <Alert
+  severity="error"
+  sx={{ mb: 3 }}
+  action={
+    <Button
+      color="inherit"
+      size="small"
+      onClick={corrigerPoursuites}
+    >
+      Corriger
+    </Button>
+  }
+>
+  Une ou plusieurs personnes ont déclaré avoir des poursuites en cours. <br />
+  Le dossier ne peut pas être poursuivi sans un extrait de poursuites vierge.
+</Alert>
 
-            {step === 6 && (
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ minWidth: 150, height: 56 }}
-                disabled={!documentsComplets}
-                onClick={() => {
-                  alert("🎉 Dossier soumis avec succès !");
-                }}
-              >
-                Soumettre le dossier
-              </Button>
-            )}
+)}
 
-            {step < 6 && (step !== 4 || etape3Valide) && (
-              <Button
-                variant="contained"
-                endIcon={
-                  loadingContinuer ? (
-                    <CircularProgress size={20} sx={{ color: "#fff" }} />
-                  ) : (
-                    <ArrowForward />
-                  )
-                }
-                sx={{
-                  minWidth: 150,
-                  height: 56,
-                  backgroundColor:
-                    step === 3 && formData.poursuites === "oui"
-                      ? "#ccc"
-                      : undefined,
-                  color:
-                    step === 3 && formData.poursuites === "oui"
-                      ? "#666"
-                      : "white",
-                  cursor:
-                    step === 3 && formData.poursuites === "oui"
-                      ? "not-allowed"
-                      : "pointer",
-                  "&:hover": {
-                    backgroundColor:
-                      step === 3 && formData.poursuites === "oui"
-                        ? "#ccc"
-                        : undefined,
-                  },
-                }}
-                disabled={
-                  (step === 3 && formData.poursuites === "oui") ||
-                  loadingContinuer
-                }
-                onClick={() => {
-                  if (step === 3 && formData.poursuites === "oui") {
-                    alert(
-                      "⚠️ Le dossier ne peut pas être poursuivi en cas de poursuites. Veuillez fournir un extrait de poursuites vierge."
-                    );
-                    return;
-                  }
-                  if (step === 4 && !etape3Valide) {
-                    alert(
-                      "⚠️ Merci de cliquer sur le bouton 🧮 Calculer et vérifier vos fonds propres avant de continuer."
-                    );
-                    return;
-                  }
-                  if (step === 5) {
-                    setLoadingContinuer(true);
-                    estimerValeurBienAvecOpenAI(formData, user, () => {
-                      setLoadingContinuer(false);
-                      nextStep();
-                    }).finally(() => setLoadingContinuer(false));
-                    return;
-                  }
-                  nextStep();
-                }}
-              >
-                {loadingContinuer ? "Calcul en cours..." : "Continuer"}
-              </Button>
-            )}
-          </Box>
-        )}
+
+    <Box mt={4} display="flex" justifyContent="space-between" gap={2}>
+      {/* 🔙 Bouton Retour */}
+      {step > 1 && (
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBack />}
+          sx={{ minWidth: 150, height: 56 }}
+          onClick={prevStep}
+        >
+          Retour
+        </Button>
+      )}
+
+      {/* ✅ Étape 6 : bouton de soumission */}
+      {step === 6 && (
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ minWidth: 150, height: 56 }}
+          disabled={!documentsComplets}
+          onClick={() => {
+            alert("🎉 Dossier soumis avec succès !");
+          }}
+        >
+          Soumettre le dossier
+        </Button>
+      )}
+
+      {/* ▶️ Bouton Continuer (étapes 2 à 5) */}
+      {step < 6 && step !== 3 && (
+
+
+        <Button
+          variant="contained"
+          endIcon={
+            loadingContinuer ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <ArrowForward />
+            )
+          }
+          sx={{
+            minWidth: 150,
+            height: 56,
+            cursor:
+              step === 3 && formData.poursuites === "oui"
+                ? "not-allowed"
+                : "pointer",
+          }}
+          disabled={
+            (step === 2 && (!etape2Valide || poursuitesDeclarees)) ||
+            loadingContinuer
+          }
+          onClick={() => {
+            if (step === 4) {
+  setLoadingContinuer(true);
+  estimerValeurBienAvecOpenAI(formData, user, () => {
+    setLoadingContinuer(false);
+    setModalFaisabiliteOpen(true); // ✅ Ouvre le modal après estimation IA
+  }).finally(() => setLoadingContinuer(false));
+  return;
+}
+
+
+  if (step === 5) {
+    setLoadingContinuer(true);
+    estimerValeurBienAvecOpenAI(formData, user, () => {
+      setLoadingContinuer(false);
+      nextStep();
+    }).finally(() => setLoadingContinuer(false));
+    return;
+  }
+
+  nextStep();
+}}
+
+        >
+          {loadingContinuer ? "Calcul en cours..." : "Continuer"}
+        </Button>
+      )}
+    </Box>
+  </>
+)}
+
+<ModalFaisabilite
+  open={modalFaisabiliteOpen}
+  onClose={() => setModalFaisabiliteOpen(false)}
+  formData={formData}
+  user={user}
+  onContinuer={nextStep}
+/>
+
+
       </Container>
     </Box>
   );

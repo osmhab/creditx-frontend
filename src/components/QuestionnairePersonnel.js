@@ -3,43 +3,60 @@ import React, { useState, useEffect } from "react";
 
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  Typography, FormControlLabel, Checkbox, TextField, Box, Fade, ToggleButtonGroup, ToggleButton, Chip
+  Typography, FormControlLabel, Checkbox, TextField, Box, Fade, ToggleButtonGroup, ToggleButton, Chip, CircularProgress
 } from "@mui/material";
 
 import { Stepper, Step, StepLabel, StepContent } from "@mui/material";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 
 
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase-config";
 
-const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
+import ChampMontantSimple from "./ChampMontantSimple";
+
+
+
+
+
+
+
+const QuestionnairePersonnel = ({ open, onClose, personIndex, employeurIndex, docRef, showErrors, setShowErrors, refreshFormData }) => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     aDesCredits: null,
-    montantCredits: "",
+    mensualiteCredits: "",
     aUnLeasing: null,
-    montantLeasing: "",
     mensualiteLeasing: "",
     payePension: null,
     montantPension: "",
     aDesEnfants: null,
     enfants: [],
+    aDesRevenusLocatifs: null,
+    montantRevenusLocatifs: "", 
     aDesPoursuites: null
   });
+  
+
+const [prenomPersonne1, setPrenomPersonne1] = useState("1ère personne");
+const [prenomPersonne2, setPrenomPersonne2] = useState("2ᵉ personne");
+const [hasDeuxiemePersonne, setHasDeuxiemePersonne] = useState(false);
+
+
   
 
   const progress = Math.min((step / 5) * 100, 100);
 
 
-  const [showErrors, setShowErrors] = useState(false);
+
 
 
 
   useEffect(() => {
     const chargerDonneesExistantes = async () => {
-      if (!open || personIndex === null) return; // Pas besoin de charger si fermé ou personne inconnue
+      if (!open || personIndex === null) return; 
   
       try {
         const snap = await getDoc(docRef);
@@ -48,6 +65,42 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
         const personne = personnes[personIndex];
   
         if (personne) {
+          let enfantsAssocies = [];
+
+          if (personnes[0]?.prenom) {
+            setPrenomPersonne1(personnes[0].prenom);
+          }
+          if (personnes.length > 1 && personnes[1]?.prenom) {
+            setHasDeuxiemePersonne(true);
+            setPrenomPersonne2(personnes[1].prenom);
+          } else {
+            setHasDeuxiemePersonne(false);
+          }
+          
+          
+  
+          if (Array.isArray(personnes[0]?.enfants)) {
+            enfantsAssocies = personnes[0].enfants.filter(
+              (enfant) => enfant.parents?.includes(personIndex === 0 ? "1" : "2")
+            );
+          }
+  
+          if (Array.isArray(personnes[1]?.enfants)) {
+            const enfantsPerso2 = personnes[1].enfants.filter(
+              (enfant) => enfant.parents?.includes(personIndex === 0 ? "1" : "2")
+            );
+            enfantsAssocies = [...enfantsAssocies, ...enfantsPerso2];
+          }
+  
+          // Supprimer les doublons éventuels
+          enfantsAssocies = enfantsAssocies.filter(
+            (enfant, index, self) =>
+              index === self.findIndex((e) => 
+                e.prenom === enfant.prenom && 
+                e.dateNaissance === enfant.dateNaissance
+              )
+          );
+  
           setForm((prevForm) => ({
             ...prevForm,
             aDesCredits: personne.aDesCredits ?? null,
@@ -58,8 +111,10 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
             mensualiteLeasing: personne.mensualiteLeasing ?? "",
             payePension: personne.payePension ?? null,
             montantPension: personne.montantPension ?? "",
-            aDesEnfants: personne.aDesEnfants ?? null,
-            enfants: personne.enfants ?? [],
+            aDesEnfants: enfantsAssocies.length > 0,
+            enfants: enfantsAssocies,
+            aDesRevenusLocatifs: personne.aDesRevenusLocatifs ?? null,
+            montantRevenusLocatifs: personne.montantRevenusLocatifs ?? "",
             aDesPoursuites: personne.aDesPoursuites ?? null
           }));
         }
@@ -73,39 +128,10 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
   
   
 
-
-  useEffect(() => {
-    const loadEnfantsCommun = async () => {
-      if (!open || personIndex === null) return;
-  
-      const snap = await getDoc(docRef);
-      const data = snap.data();
-      const personnes = data.personnes || [];
-  
-      if (Array.isArray(personnes[0]?.enfants) && personnes[0].enfants.length > 0 && personIndex === 1) {
-        const enfantsPourPersonne2 = personnes[0].enfants.filter((enfant) => 
-          enfant.parents?.includes("2") &&
-          typeof enfant.prenom === "string" &&
-          typeof enfant.dateNaissance === "string" &&
-          Array.isArray(enfant.parents)
-        );
-  
-        if (enfantsPourPersonne2.length > 0) {
-          setForm((prevForm) => ({
-            ...prevForm,
-            aDesEnfants: true,
-            enfants: enfantsPourPersonne2
-          }));
-        }
-      }
-    };
-  
-    loadEnfantsCommun();
-  }, [open, personIndex, docRef]);
   
   
 
-  const steps = ["Crédits", "Leasing", "Pension alimentaire", "Enfants à charge", "Poursuites"];
+  const steps = ["Crédits", "Leasing", "Pension alimentaire", "Enfants à charge", "Revenus locatifs", "Poursuites"];
 
   const saveToFirestore = async (field, value) => {
     if (!docRef || personIndex === null) return;
@@ -128,22 +154,30 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
     if (step === 0) {
       await saveToFirestore("aDesCredits", form.aDesCredits);
       if (form.aDesCredits) {
-        await saveToFirestore("montantCredits", form.montantCredits);
-        await saveToFirestore("mensualiteCredits", form.mensualiteCredits);
+        await saveToFirestore("mensualiteCredits", Number(form.mensualiteCredits));
+
+      } else {
+        await saveToFirestore("mensualiteCredits", "");
       }
+      
     }
     if (step === 1) {
       await saveToFirestore("aUnLeasing", form.aUnLeasing);
       if (form.aUnLeasing) {
-        await saveToFirestore("montantLeasing", form.montantLeasing);
-        await saveToFirestore("mensualiteLeasing", form.mensualiteLeasing);
+        await saveToFirestore("mensualiteLeasing", Number(form.mensualiteLeasing));
+
+      } else {
+        await saveToFirestore("mensualiteLeasing", "");
       }
+      
     }
 
     if (step === 2) {
       await saveToFirestore("payePension", form.payePension);
       if (form.payePension) {
-        await saveToFirestore("montantPension", form.montantPension);
+        await saveToFirestore("montantPension", Number(form.montantPension));
+      } else {
+        await saveToFirestore("montantPension", "");
       }
     }
 
@@ -213,10 +247,20 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
         }
       }
     }
+
+    if (step === 4) {
+      await saveToFirestore("aDesRevenusLocatifs", form.aDesRevenusLocatifs);
+      if (form.aDesRevenusLocatifs) {
+        await saveToFirestore("montantRevenusLocatifs", Number(form.montantRevenusLocatifs));
+      } else {
+        await saveToFirestore("montantRevenusLocatifs", "");
+      }
+    }
+    
     
 
 
-    if (step === 4) {
+    if (step === 5) {
       await saveToFirestore("aDesPoursuites", form.aDesPoursuites);
     }
     
@@ -224,28 +268,49 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
     setStep(step + 1);
   };
 
-  const handleClose = () => {
-    setStep(0);    // Je reviens simplement à l'étape 0
-    onClose();     // Je ferme le modal sans toucher aux réponses
+  const handleClose = async () => {
+    setStep(0);
+    await refreshFormData();
+    onClose();
   };
+  
+  
   
 
   const isStepCompleted = (stepNumber) => {
     switch (stepNumber) {
       case 0: // Crédits
-        return form.aDesCredits !== null && (form.aDesCredits === false || (form.montantCredits.trim() !== "" && form.mensualiteCredits.trim() !== ""));
+        return form.aDesCredits !== null && (
+          form.aDesCredits === false || form.mensualiteCredits > 0
+        );
       case 1: // Leasing
-        return form.aUnLeasing !== null && (form.aUnLeasing === false || (form.montantLeasing.trim() !== "" && form.mensualiteLeasing.trim() !== ""));
+        return form.aUnLeasing !== null && (
+          form.aUnLeasing === false || form.mensualiteLeasing > 0
+        );
       case 2: // Pension alimentaire
-        return form.payePension !== null && (form.payePension === false || form.montantPension.trim() !== "");
+        return form.payePension !== null && (
+          form.payePension === false || form.montantPension > 0
+        );
       case 3: // Enfants
-        return form.aDesEnfants !== null && (form.aDesEnfants === false || (form.enfants.length > 0 && form.enfants.every((e) => e.prenom.trim() !== "" && e.dateNaissance.trim() !== "")));
-      case 4: // Poursuites
+        return form.aDesEnfants !== null && (
+          form.aDesEnfants === false || (
+            form.enfants.length > 0 &&
+            form.enfants.every(
+              (e) => e.prenom.trim() !== "" && e.dateNaissance.trim() !== ""
+            )
+          )
+        );
+      case 4: // Revenus locatifs
+        return form.aDesRevenusLocatifs !== null && (
+          form.aDesRevenusLocatifs === false || form.montantRevenusLocatifs > 0
+        );
+      case 5: // Poursuites
         return form.aDesPoursuites !== null;
       default:
         return false;
     }
   };
+  
   
 
   const getQuestionForStep = (index) => {
@@ -259,9 +324,10 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
       case 3:
         return "Avez-vous des enfants à charge ?";
       case 4:
+        return "Avez-vous des revenus locatifs ?";
+      case 5:
         return "Avez-vous des poursuites en cours ?";
-      default:
-        return "";
+        
     }
   };
 
@@ -272,10 +338,10 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
     switch (index) {
       case 0:
         return form.aDesCredits === null ? "Non renseigné" :
-          form.aDesCredits ? `Oui, montant restant : ${form.montantCredits || "non précisé"} CHF` : "Non";
+          form.aDesCredits ? `Oui, mensualité : ${form.mensualiteCredits || "non précisée"} CHF` : "Non";
       case 1:
         return form.aUnLeasing === null ? "Non renseigné" :
-          form.aUnLeasing ? `Oui, montant : ${form.montantLeasing || "non précisé"} CHF / mensualité : ${form.mensualiteLeasing || "non précisée"} CHF` : "Non";
+          form.aUnLeasing ? `Oui, mensualité : ${form.mensualiteLeasing || "non précisée"} CHF` : "Non";
       case 2:
         return form.payePension === null ? "Non renseigné" :
           form.payePension ? `Oui, montant : ${form.montantPension || "non précisé"} CHF` : "Non";
@@ -283,12 +349,63 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
         return form.aDesEnfants === null ? "Non renseigné" :
           form.aDesEnfants ? `${form.enfants.length} enfant(s)` : "Non";
       case 4:
+        return form.aDesRevenusLocatifs === null ? "Non renseigné" :
+          form.aDesRevenusLocatifs
+            ? `Oui, ${form.montantRevenusLocatifs || "non précisé"} CHF/mois`
+            : "Non";
+      case 5:
         return form.aDesPoursuites === null ? "Non renseigné" :
           form.aDesPoursuites ? "Oui" : "Non";
-      default:
-        return "";
+          
     }
   };
+
+
+
+  const retirerEnfantsSiParentDecline = async (docRef, personIndex) => {
+    if (!docRef || personIndex === null) return;
+  
+    const snap = await getDoc(docRef);
+    const data = snap.data();
+    const personnes = data.personnes || [];
+    const updatedPersonnes = [...personnes];
+  
+    const autreIndex = personIndex === 0 ? 1 : 0;
+    const parentTag = personIndex === 0 ? "1" : "2";
+  
+    // 🔥 1. Vider totalement la liste d'enfants de la personne qui refuse
+    updatedPersonnes[personIndex] = {
+      ...updatedPersonnes[personIndex],
+      enfants: [],
+      aDesEnfants: false,
+    };
+  
+    // 🔥 2. Supprimer tous les enfants liés à ce parent chez l'autre personne
+    if (updatedPersonnes[autreIndex]?.enfants) {
+      updatedPersonnes[autreIndex].enfants = updatedPersonnes[autreIndex].enfants
+        .filter((enfant) => !enfant.parents?.includes(parentTag));
+    }
+  
+    // 🔥 3. Supprimer tous les enfants liés à ce parent dans la base commune (personnes[0])
+    if (updatedPersonnes[0]?.enfants) {
+      updatedPersonnes[0].enfants = updatedPersonnes[0].enfants
+        .filter((enfant) => !enfant.parents?.includes(parentTag));
+    }
+  
+    // 🔥 4. Sauvegarder
+    await updateDoc(docRef, { personnes: updatedPersonnes });
+  };
+
+  
+  const [confirmRemove, setConfirmRemove] = useState({
+    open: false,
+    enfantIndex: null,
+  });
+  
+  
+  
+  
+  
   
   
   
@@ -336,15 +453,14 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
   sx={{
     cursor: "pointer",
     "& .MuiStepLabel-label": {
-      transition: "color 0.3s ease",
-      color: showErrors && !isStepCompleted(index) ? "red" : "#000",
-    },
-    "& .MuiStepLabel-label:hover": {
-      color: "#001BFF",
-    },
-    "& .MuiStepLabel-label.Mui-active": {
-      color: "#001BFF",
-    },
+  transition: "color 0.3s ease",
+  color:
+    step === index
+      ? "#000" // question active = noir
+      : "#888888", // inactives = gris clair
+},
+
+   
     "& .MuiStepIcon-root": {
       color: showErrors && !isStepCompleted(index) ? "red" : "#c4c4c4",
     },
@@ -370,38 +486,43 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
 
         {index === 0 && (
   <>
-    <ToggleButtonGroup
-      value={form.aDesCredits}
-      exclusive
-      onChange={(e, val) => {
-        if (val !== null) setForm({ ...form, aDesCredits: val });
-      }}
-      fullWidth
-      sx={{ mb: 2 }}
-    >
+      <ToggleButtonGroup
+  value={form.aDesCredits}
+  exclusive
+  onChange={async (e, val) => {
+    if (val !== null) {
+      setForm((prev) => ({
+        ...prev,
+        aDesCredits: val,
+        mensualiteCredits: val ? prev.mensualiteCredits : "",
+      }));
+
+      await saveToFirestore("aDesCredits", val);
+
+      if (val === false) {
+        // 🔥 Efface directement la mensualité dans Firestore
+        await saveToFirestore("mensualiteCredits", "");
+      }
+    }
+  }}
+  fullWidth
+  sx={{ mb: 2 }}
+>
+
       <ToggleButton value={true}>Oui</ToggleButton>
       <ToggleButton value={false}>Non</ToggleButton>
     </ToggleButtonGroup>
 
     {form.aDesCredits && (
       <>
-        <TextField
-          label="Montant total restant à rembourser (CHF)"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={form.montantCredits}
-          onChange={(e) => setForm({ ...form, montantCredits: e.target.value })}
-        />
-        <TextField
-          label="Montant de la mensualité du crédit (CHF)"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={form.mensualiteCredits || ""}
-          onChange={(e) => setForm({ ...form, mensualiteCredits: e.target.value })}
-          sx={{ mt: 2 }}
-        />
+  
+      <ChampMontantSimple
+        label="Montant de la mensualité du crédit (CHF)"
+        value={form.mensualiteCredits}
+        onChange={(val) => setForm({ ...form, mensualiteCredits: val })}
+      />
+
+
       </>
     )}
   </>
@@ -412,38 +533,40 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
 
           {index === 1 && (
   <>
-    <ToggleButtonGroup
-      value={form.aUnLeasing}
-      exclusive
-      onChange={(e, val) => {
-        if (val !== null) setForm({ ...form, aUnLeasing: val });
-      }}
-      fullWidth
-      sx={{ mb: 2 }}
-    >
+  <ToggleButtonGroup
+  value={form.aUnLeasing}
+  exclusive
+  onChange={async (e, val) => {
+    if (val !== null) {
+      setForm((prev) => ({
+        ...prev,
+        aUnLeasing: val,
+        mensualiteLeasing: val ? prev.mensualiteLeasing : "",
+      }));
+
+      await saveToFirestore("aUnLeasing", val);
+
+      if (val === false) {
+        // 🔥 Efface directement la mensualité dans Firestore
+        await saveToFirestore("mensualiteLeasing", "");
+      }
+    }
+  }}
+  fullWidth
+  sx={{ mb: 2 }}
+>
+
       <ToggleButton value={true}>Oui</ToggleButton>
       <ToggleButton value={false}>Non</ToggleButton>
     </ToggleButtonGroup>
 
     {form.aUnLeasing && (
       <>
-        <TextField
-          label="Montant du leasing restant (CHF)"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={form.montantLeasing}
-          onChange={(e) => setForm({ ...form, montantLeasing: e.target.value })}
-        />
-        <TextField
-          label="Montant de la mensualité (CHF)"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={form.mensualiteLeasing}
-          onChange={(e) => setForm({ ...form, mensualiteLeasing: e.target.value })}
-          sx={{ mt: 2 }}
-        />
+      <ChampMontantSimple
+        label="Montant total des mensualités de leasing (CHF)"
+        value={form.mensualiteLeasing}
+        onChange={(val) => setForm({ ...form, mensualiteLeasing: val })}
+      />
       </>
     )}
   </>
@@ -454,12 +577,87 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
 
 {index === 2 && (
   <>
+  <ToggleButtonGroup
+  value={form.payePension}
+  exclusive
+  onChange={async (e, val) => {
+    if (val !== null) {
+      setForm((prev) => ({
+        ...prev,
+        payePension: val,
+        montantPension: val ? prev.montantPension : "",
+      }));
+
+      await saveToFirestore("payePension", val);
+
+      if (val === false) {
+        // 🔥 Efface directement le montant de pension dans Firestore
+        await saveToFirestore("montantPension", "");
+      }
+    }
+  }}
+  fullWidth
+  sx={{ mb: 2 }}
+>
+
+      <ToggleButton value={true}>Oui</ToggleButton>
+      <ToggleButton value={false}>Non</ToggleButton>
+    </ToggleButtonGroup>
+
+    {form.payePension && (
+      <ChampMontantSimple
+        label="Montant de la pension alimentaire par mois (CHF)"
+        value={form.montantPension}
+        onChange={(val) => setForm({ ...form, montantPension: val })}
+      />
+
+    )}
+  </>
+)}
+
+{index === 3 && (
+  <>
+    {loading && (
+      <Box display="flex" justifyContent="center" mt={2}>
+        <CircularProgress />
+      </Box>
+    )}
+
     <ToggleButtonGroup
-      value={form.payePension}
+      value={form.aDesEnfants}
       exclusive
-      onChange={(e, val) => {
-        if (val !== null) setForm({ ...form, payePension: val });
-      }}
+      onChange={async (e, val) => {
+  if (val !== null) {
+    setLoading(true);
+
+    if (val === false) {
+      setForm((prev) => ({
+        ...prev,
+        aDesEnfants: false,
+        enfants: [],
+      }));
+
+      await retirerEnfantsSiParentDecline(docRef, personIndex);
+      await refreshFormData();
+    } else {
+      const nouvelEnfant = { prenom: "", dateNaissance: "", parents: hasDeuxiemePersonne ? ["1", "2"] : ["1"] };
+
+
+      setForm((prev) => ({
+        ...prev,
+        aDesEnfants: true,
+        enfants: prev.enfants.length > 0 ? prev.enfants : [nouvelEnfant],
+      }));
+
+      await saveToFirestore("aDesEnfants", true);
+      await saveToFirestore("enfants", form.enfants.length > 0 ? form.enfants : [nouvelEnfant]);
+      await refreshFormData();
+    }
+
+    setLoading(false);
+  }
+}}
+
       fullWidth
       sx={{ mb: 2 }}
     >
@@ -467,32 +665,137 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
       <ToggleButton value={false}>Non</ToggleButton>
     </ToggleButtonGroup>
 
-    {form.payePension && (
-      <TextField
-        label="Montant de la pension alimentaire par mois (CHF)"
-        type="number"
-        fullWidth
-        margin="normal"
-        value={form.montantPension}
-        onChange={(e) => setForm({ ...form, montantPension: e.target.value })}
-      />
-    )}
+    {form.aDesEnfants && (
+  <>
+    {form.enfants.map((enfant, idx) => (
+      <Box key={idx} mb={2} display="flex" gap={2}>
+        <Box flexGrow={1}>
+          <TextField
+            label={`Prénom de l'enfant ${idx + 1}`}
+            fullWidth
+            margin="normal"
+            value={enfant.prenom}
+            onChange={(e) => {
+              const newEnfants = [...form.enfants];
+              newEnfants[idx].prenom = e.target.value;
+              setForm({ ...form, enfants: newEnfants });
+            }}
+          />
+          <TextField
+            label={`Date de naissance de l'enfant ${idx + 1}`}
+            type="date"
+            fullWidth
+            margin="normal"
+            value={enfant.dateNaissance}
+            onChange={(e) => {
+              const newEnfants = [...form.enfants];
+              newEnfants[idx].dateNaissance = e.target.value;
+              setForm({ ...form, enfants: newEnfants });
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
+
+          {hasDeuxiemePersonne && (
+            <>
+              <Typography sx={{ mt: 1, mb: 1 }}>À la charge de :</Typography>
+              <ToggleButtonGroup
+                value={enfant.parents || []}
+                onChange={async (e, newParents) => {
+                  const newEnfants = [...form.enfants];
+                  newEnfants[idx].parents = newParents;
+                  setForm({ ...form, enfants: newEnfants });
+
+                  const snap = await getDoc(docRef);
+                  const data = snap.data();
+                  const personnes = data.personnes || [];
+
+                  const updatedPersonnes = [...personnes];
+                  if (!updatedPersonnes[0].enfants) updatedPersonnes[0].enfants = [];
+                  if (!updatedPersonnes[1].enfants) updatedPersonnes[1].enfants = [];
+
+                  updatedPersonnes[0].enfants = updatedPersonnes[0].enfants.map((e) =>
+                    e.prenom === enfant.prenom && e.dateNaissance === enfant.dateNaissance
+                      ? { ...e, parents: newParents }
+                      : e
+                  );
+                  updatedPersonnes[1].enfants = updatedPersonnes[1].enfants.map((e) =>
+                    e.prenom === enfant.prenom && e.dateNaissance === enfant.dateNaissance
+                      ? { ...e, parents: newParents }
+                      : e
+                  );
+
+                  await updateDoc(docRef, { personnes: updatedPersonnes });
+                }}
+                size="small"
+                fullWidth
+              >
+                <ToggleButton value="1">{prenomPersonne1}</ToggleButton>
+                <ToggleButton value="2">{prenomPersonne2}</ToggleButton>
+              </ToggleButtonGroup>
+            </>
+          )}
+        </Box>
+
+        <Box display="flex" alignItems="center" mt={4}>
+          <Button
+            color="inherit"
+            onClick={() => {
+              const newEnfants = [...form.enfants];
+              newEnfants.splice(idx, 1);
+              setForm({ ...form, enfants: newEnfants });
+            }}
+          >
+            <DeleteOutlineIcon />
+          </Button>
+        </Box>
+      </Box>
+    ))}
+
+    <Button
+      variant="outlined"
+      sx={{ mt: 2 }}
+      onClick={() =>
+        setForm((prev) => ({
+          ...prev,
+          enfants: [
+            ...prev.enfants,
+            {
+              prenom: "",
+              dateNaissance: "",
+              parents: hasDeuxiemePersonne ? ["1", "2"] : ["1"]
+            }
+          ]
+        }))
+      }
+    >
+      Ajouter un enfant
+    </Button>
+  </>
+)}
+
   </>
 )}
 
 
-{index === 3 && (
+
+{index === 4 && (
   <>
     <ToggleButtonGroup
-      value={form.aDesEnfants}
+      value={form.aDesRevenusLocatifs}
       exclusive
-      onChange={(e, val) => {
+      onChange={async (e, val) => {
         if (val !== null) {
           setForm((prev) => ({
             ...prev,
-            aDesEnfants: val,
-            enfants: val ? prev.enfants : [],
+            aDesRevenusLocatifs: val,
+            montantRevenusLocatifs: val ? prev.montantRevenusLocatifs : "",
           }));
+
+          await saveToFirestore("aDesRevenusLocatifs", val);
+
+          if (!val) {
+            await saveToFirestore("montantRevenusLocatifs", "");
+          }
         }
       }}
       fullWidth
@@ -502,75 +805,18 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
       <ToggleButton value={false}>Non</ToggleButton>
     </ToggleButtonGroup>
 
-    {form.aDesEnfants && (
-      <>
-        {form.enfants.map((enfant, idx) => (
-          <Box key={idx} mb={2}>
-            <TextField
-              label={`Prénom de l'enfant ${idx + 1}`}
-              fullWidth
-              margin="normal"
-              value={enfant.prenom}
-              onChange={(e) => {
-                const newEnfants = [...form.enfants];
-                newEnfants[idx].prenom = e.target.value;
-                setForm({ ...form, enfants: newEnfants });
-              }}
-            />
-            <TextField
-              label={`Date de naissance de l'enfant ${idx + 1}`}
-              type="date"
-              fullWidth
-              margin="normal"
-              value={enfant.dateNaissance}
-              onChange={(e) => {
-                const newEnfants = [...form.enfants];
-                newEnfants[idx].dateNaissance = e.target.value;
-                setForm({ ...form, enfants: newEnfants });
-              }}
-              InputLabelProps={{ shrink: true }}
-            />
+    {form.aDesRevenusLocatifs && (
+      <ChampMontantSimple
+        label="Montant mensuel des revenus locatifs (CHF)"
+        value={form.montantRevenusLocatifs}
+        onChange={(val) =>
+          setForm((prev) => ({
+            ...prev,
+            montantRevenusLocatifs: val,
+          }))
+        }
+      />
 
-            {/* 🔵 Checkbox : est-ce aussi l'enfant de la personne 2 ? */}
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={enfant.parents?.includes("2") || false}
-                  onChange={(e) => {
-                    const newEnfants = [...form.enfants];
-                    if (e.target.checked) {
-                      newEnfants[idx].parents = newEnfants[idx].parents
-                        ? Array.from(new Set([...newEnfants[idx].parents, "1", "2"]))
-                        : ["1", "2"];
-                    } else {
-                      newEnfants[idx].parents = ["1"];
-                    }
-                    setForm({ ...form, enfants: newEnfants });
-                  }}
-                />
-              }
-              label="Cet enfant est aussi celui de la 2ᵉ personne ?"
-              sx={{ mt: 1 }}
-            />
-          </Box>
-        ))}
-
-        <Button
-          variant="outlined"
-          sx={{ mt: 2 }}
-          onClick={() =>
-            setForm((prev) => ({
-              ...prev,
-              enfants: [
-                ...prev.enfants,
-                { prenom: "", dateNaissance: "", parents: personIndex === 1 ? ["2"] : ["1"] },
-              ],
-            }))
-          }
-        >
-          Ajouter un enfant
-        </Button>
-      </>
     )}
   </>
 )}
@@ -578,17 +824,27 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
 
 
 
-{index === 4 && (
+
+
+
+
+
+
+{index === 5 && (
   <>
-    <ToggleButtonGroup
-      value={form.aDesPoursuites}
-      exclusive
-      onChange={(e, val) => {
-        if (val !== null) setForm({ ...form, aDesPoursuites: val });
-      }}
-      fullWidth
-      sx={{ mb: 2 }}
-    >
+  <ToggleButtonGroup
+  value={form.aDesPoursuites}
+  exclusive
+  onChange={async (e, val) => {
+    if (val !== null) {
+      setForm((prev) => ({ ...prev, aDesPoursuites: val }));
+      await saveToFirestore("aDesPoursuites", val);
+    }
+  }}
+  fullWidth
+  sx={{ mb: 2 }}
+>
+
       <ToggleButton value={true}>Oui</ToggleButton>
       <ToggleButton value={false}>Non</ToggleButton>
     </ToggleButtonGroup>
@@ -598,14 +854,27 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
 
           
 <Box display="flex" justifyContent="flex-end" mt={2}>
-  <Button
+<Button
   variant="contained"
   onClick={async () => {
-    if (index === 4) {
-      // 🔥 Vérifier toutes les étapes
-      const allStepsCompleted = [0, 1, 2, 3, 4].every((step) => isStepCompleted(step));
+    if (index === 5) {
+      const allStepsCompleted = [0, 1, 2, 3, 4, 5].every((step) => isStepCompleted(step));
       if (allStepsCompleted) {
         setShowErrors(false);
+
+        const snap = await getDoc(docRef);
+        const data = snap.data();
+        const personnes = data.personnes || [];
+        const updatedPersonnes = [...personnes];
+
+        // ✅ Mise à jour sur la personne elle-même
+        updatedPersonnes[personIndex] = {
+          ...updatedPersonnes[personIndex],
+          questionnaireComplet: true,
+        };
+
+        await updateDoc(docRef, { personnes: updatedPersonnes });
+        await refreshFormData();
         onClose();
       } else {
         setShowErrors(true);
@@ -617,8 +886,10 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
   }}
   sx={{ mt: 2 }}
 >
-  {index === 4 ? "Terminer" : "Confirmer et continuer"}
+  {index === 5 ? "Terminer" : "Confirmer et continuer"}
 </Button>
+
+
 
 </Box>
 
@@ -636,6 +907,40 @@ const QuestionnairePersonnel = ({ open, onClose, personIndex, docRef }) => {
 
 
       </Box>
+
+
+
+      <Dialog
+  open={confirmRemove.open}
+  onClose={() => setConfirmRemove({ open: false, enfantIndex: null })}
+>
+  <DialogTitle>Retirer ce parent ?</DialogTitle>
+  <DialogContent>
+    Êtes-vous sûr de vouloir retirer ce parent de l'enfant ?
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setConfirmRemove({ open: false, enfantIndex: null })}>
+      Annuler
+    </Button>
+    <Button
+      color="error"
+      onClick={() => {
+        const idx = confirmRemove.enfantIndex;
+        const newEnfants = [...form.enfants];
+        const parentTag = personIndex === 1 ? "2" : "1";
+        newEnfants[idx].parents = newEnfants[idx].parents?.filter((p) => p !== parentTag);
+        setForm({ ...form, enfants: newEnfants });
+        setConfirmRemove({ open: false, enfantIndex: null });
+      }}
+    >
+      Confirmer
+    </Button>
+  </DialogActions>
+</Dialog>
+
+
+
+
   
 
   

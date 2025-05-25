@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+import { getDoc } from "firebase/firestore";
+
+
 import {
   Box,
   Typography,
@@ -18,8 +22,17 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  Chip
+  Chip,
 } from "@mui/material";
+import { Skeleton } from "@mui/material";
+import { Fade } from "@mui/material";
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+
+
 
 import { useTheme } from "@mui/material";
 
@@ -33,6 +46,7 @@ import BadgeIcon from "@mui/icons-material/Badge";
 
 import ModalNouvelEmployeur from "./ModalNouvelEmployeur";
 import QuestionnairePersonnel from "./QuestionnairePersonnel";
+import CustomSkeleton from "./CustomSkeleton";
 
 
 const ModalQuestionnairePersonnel = ({ open, onClose, person }) => {
@@ -54,7 +68,15 @@ const ModalQuestionnairePersonnel = ({ open, onClose, person }) => {
   );
 };
 
-const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
+const Etape2SituationFinanciere = ({ 
+  formData,
+  setFormData,
+  handleChange,
+  user,
+  docRef,
+  ouvrirModalPourIndex,
+  ouvrirModalSiDemande
+  }) => {
   const [openedIndices, setOpenedIndices] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentPersonIndex, setCurrentPersonIndex] = useState(null);
@@ -63,10 +85,35 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
   const [toDelete, setToDelete] = useState(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [modalQuestionnaireOpen, setModalQuestionnaireOpen] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [currentEmployeurIndex, setCurrentEmployeurIndex] = useState(null);
+
+
+  
+
 
 
   const theme = useTheme();
+
+  const refreshFormData = async () => {
+    if (!docRef) return;
+    setLoading(true);
+    const snap = await getDoc(docRef);
+    const data = snap.data();
+    if (data && Array.isArray(data.personnes)) {
+      setFormData((prev) => ({
+        ...prev,
+        personnes: data.personnes,
+      }));
+    }
+    setTimeout(() => {
+    setLoading(false);
+  }, 400);
+  };
+  
+  
+  
+  
 
 
 
@@ -113,37 +160,173 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
 
   const personnes = Array.isArray(formData?.personnes) ? formData.personnes : [];
 
-  const isQuestionnaireComplet = (pers) => {
-    return pers.aDesCredits !== null &&
-      pers.aUnLeasing !== null &&
-      pers.payePension !== null &&
-      pers.aDesEnfants !== null &&
-      pers.aDesPoursuites !== null;
+  const isQuestionnaireCompleted = (pers) => {
+    if (!pers) return false;
+  
+    const creditsOk =
+      pers.aDesCredits === false ||
+      (pers.aDesCredits === true &&
+        pers.montantCredits?.toString().trim() !== "" &&
+        pers.mensualiteCredits?.toString().trim() !== "");
+  
+    const leasingOk =
+      pers.aUnLeasing === false ||
+      (pers.aUnLeasing === true &&
+        pers.montantLeasing?.toString().trim() !== "" &&
+        pers.mensualiteLeasing?.toString().trim() !== "");
+  
+    const pensionOk =
+      pers.payePension === false ||
+      (pers.payePension === true &&
+        pers.montantPension?.toString().trim() !== "");
+  
+    const enfantsOk =
+      pers.aDesEnfants === false ||
+      (pers.aDesEnfants === true &&
+        Array.isArray(pers.enfants) &&
+        pers.enfants.length > 0 &&
+        pers.enfants.every((enfant) =>
+          enfant.prenom?.trim() !== "" && enfant.dateNaissance?.trim() !== ""
+        ));
+
+    const revenusLocatifsOk =
+    pers.aDesRevenusLocatifs === false ||
+    (pers.aDesRevenusLocatifs === true &&
+      pers.montantRevenusLocatifs?.toString().trim() !== "");
+      
+  
+    const poursuitesOk = pers.aDesPoursuites !== null;
+  
+    return (
+      creditsOk &&
+      leasingOk &&
+      pensionOk &&
+      enfantsOk &&
+      revenusLocatifsOk &&
+      poursuitesOk
+    );
+    
   };
+
+  const [showErrors, setShowErrors] = useState(false);
+
+  const handleOpenQuestionnaire = (pIdx) => {
+    setCurrentPersonIndex(pIdx);
+    setShowErrors(true);
+    setModalQuestionnaireOpen(true);
+  };
+  
+  useEffect(() => {
+    if (!modalQuestionnaireOpen) {
+      refreshFormData(); // Refresh auto quand le modal se ferme
+    }
+  }, [modalQuestionnaireOpen]);
+
+  
+  
+
+
+  
+  
+  
   
 
   return (
     <Box>
       <Typography variant="h5" mb={4}>Données financières</Typography>
 
+      {loading ? (
+  [...Array(2)].map((_, i) => (
+    <Paper key={i} sx={{ mb: 2, p: 2 }}>
+      <Box display="flex" alignItems="center" gap={2}>
+        <CustomSkeleton variant="circular" width={36} height={36}/>
+        <Box flexGrow={1}>
+          <CustomSkeleton variant="text" width="40%" height={20}/>
+          <CustomSkeleton variant="text" width="60%" height={20}/>
+        </Box>
+      </Box>
+      <Box mt={2}>
+        <CustomSkeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
+      </Box>
+    </Paper>
+  ))
+) : (
+
+
+
+  <Fade in={!loading} timeout={600} unmountOnExit>
+<Box>
       {personnes.map((pers, pIdx) => {
         const isOpen = openedIndices.includes(pIdx);
         const employeurs = pers.employeurs || [];
 
         return (
-          <Paper key={pIdx} sx={{ mb: 2, p: 2, backgroundColor: "#f0f0f0", border: "1px solid #ccc" }}>
-            <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => handleToggle(pIdx)} sx={{ cursor: "pointer" }}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <InfoOutlinedIcon sx={{ border: "1px solid #001BFF", borderRadius: "50%", fontSize: 28, color: "#001BFF", p: "2px" }} />
+  <Paper key={pIdx} sx={{ mb: 2, p: 2, backgroundColor: theme.palette.background.default, border: `1px solid ${theme.palette.divider}` }}>
+    <Box
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      onClick={() => handleToggle(pIdx)}
+      sx={{ cursor: "pointer" }}
+    >
+      <Box display="flex" alignItems="center" gap={2}>
+        <Box
+          sx={{
+            
+            borderRadius: "50%",
+            p: "4px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 36,
+            height: 36,
+          }}
+        >
+          {employeurs.length > 0 && isQuestionnaireCompleted(pers) ? (
+  <Box
+    sx={{
+      width: 28,
+      height: 28,
+      backgroundColor: theme.palette.success.main,
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <CheckIcon sx={{ fontSize: 18, color: "#fff" }} />
+  </Box>
+) : (
+  <Box
+    sx={{
+      width: 28,
+      height: 28,
+      backgroundColor: theme.palette.error.main,
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <CloseIcon sx={{ fontSize: 18, color: "#fff" }} />
+  </Box>
+)}
+
+        </Box>
+
+
+
+
                 <Box>
-                  <Typography fontWeight="bold" color="#001BFF">Situation financière</Typography>
-                  <Box display="flex" alignItems="center" gap={1} color="#001BFF">
+                  <Typography fontWeight="bold" color="text.primary">Situation financière</Typography>
+                    <Box display="flex" alignItems="center" gap={1} color="text.secondary">
+
                     <PersonIcon />
                     <Typography>{pers.prenom} {pers.nom}, {pers.dateNaissance}</Typography>
                   </Box>
                 </Box>
               </Box>
-              <IconButton size="small">{isOpen ? <ExpandLessIcon sx={{ color: "#001BFF" }} /> : <ExpandMoreIcon sx={{ color: "#001BFF" }} />}</IconButton>
+              <IconButton size="small">{isOpen ? <ExpandLessIcon sx={{ color: theme.palette.secondary.main }} /> : <ExpandMoreIcon sx={{ color: theme.palette.secondary.main }} />}</IconButton>
             </Box>
 
             <Collapse in={isOpen} timeout="auto" unmountOnExit>
@@ -155,6 +338,10 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
                 </Box>
 
                 {employeurs.length > 0 && (
+
+
+                  
+
                   <List dense>
                     {employeurs.map((emp, eIdx) => (
                       <React.Fragment key={eIdx}>
@@ -183,43 +370,115 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
                   </List>
                 )}
 
-                <Button variant="contained" onClick={() => {
-                  setCurrentPersonIndex(pIdx);
-                  setEditingInfos(null);
-                  setModalOpen(true);
-                }} sx={{ backgroundColor: "#001BFF", fontWeight: "bold", px: 4, py: 1.5, mt: 2, "&:hover": { backgroundColor: "#0010b3" } }}>
-                  AJOUTER UN EMPLOYEUR
-                </Button>
+                {employeurs.length === 0 && (
+  <Box
+    sx={{
+      p: 2,
+      border: `1px dashed ${theme.palette.divider}`,
+      borderRadius: 2,
+      backgroundColor: theme.palette.background.default,
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      color: "text.secondary",
+    }}
+  >
+    <BadgeIcon sx={{ color: theme.palette.divider }} />
+    <Typography variant="body2">
+      Aucun employeur n’a encore été ajouté pour {pers.prenom}.
+    </Typography>
+  </Box>
+)}
 
-                <Button
-                variant="outlined"
-                onClick={() => {
-                  setCurrentPersonIndex(pIdx);
-                  setModalQuestionnaireOpen(true);
-                }}
-                sx={{
-                  mt: 2,
-                  ml: 2,
-                  color: isQuestionnaireComplet(pers) ? theme.palette.success.main : (showErrors ? theme.palette.error.main : "inherit"),
-                  borderColor: isQuestionnaireComplet(pers) ? theme.palette.success.main : (showErrors ? theme.palette.error.main : "grey.400"),
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  px: 2,
-                  py: 1,
-                }}
-              >
-                Questionnaire personnel
-                {isQuestionnaireComplet(pers) && (
-                  <Chip
-                    label="✔️"
-                    color="success"
-                    size="small"
-                    sx={{ fontSize: "16px", height: "24px" }}
-                  />
-                )}
-              </Button>
+
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', mt: 2 }}>
+  <Button
+    variant="contained"
+    onClick={() => {
+      setCurrentPersonIndex(pIdx);
+      setEditingInfos(null);
+      setModalOpen(true);
+    }}
+    sx={{
+      backgroundColor: theme.palette.secondary.main,
+      fontWeight: "bold",
+      px: 4,
+      py: 1.5,
+      "&:hover": { backgroundColor: theme.palette.secondary.dark }
+    }}
+
+  >
+    AJOUTER UN EMPLOYEUR
+  </Button>
+
+  <Button
+    data-bouton-questionnaire
+    onClick={() => {
+      setCurrentPersonIndex(pIdx);
+      setShowErrors(true); // 🔥 Important pour forcer l'affichage des erreurs
+      setCurrentEmployeurIndex(0);
+      setModalQuestionnaireOpen(true);
+    }}
+    variant="outlined"
+    sx={{
+      borderColor: isQuestionnaireCompleted(pers) ? 'primary.main' : 'error.main',
+      color: isQuestionnaireCompleted(pers) ? 'primary.main' : 'error.main',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      px: 2.5,
+      py: 1.5,
+      gap: 1.5,
+      textTransform: 'none',
+      borderWidth: 2,
+      transition: "all 0.3s ease",
+      "&:hover": {
+        borderColor: isQuestionnaireCompleted(pers) ? 'primary.dark' : 'primary.dark',
+        backgroundColor: isQuestionnaireCompleted(pers) ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+        color: isQuestionnaireCompleted(pers) ? 'primary.dark' : 'primary.dark',
+      },
+    }}
+  >
+    {isQuestionnaireCompleted(pers) ? (
+  <Box
+    sx={{
+      width: 28,
+      height: 28,
+      backgroundColor: theme.palette.success.main,
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }}
+  >
+    <CheckIcon sx={{ fontSize: 18, color: "#fff" }} />
+  </Box>
+) : (
+  <Box
+    sx={{
+      width: 28,
+      height: 28,
+      backgroundColor: theme.palette.error.main,
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }}
+  >
+    <CloseIcon sx={{ fontSize: 18, color: "#fff" }} />
+  </Box>
+)}
+
+
+    <span style={{ fontWeight: "bold", fontSize: "1rem" }}>
+  QUESTIONNAIRE PERSONNEL
+</span>
+
+  </Button>
+</Box>
+
+
+
 
 
               </Box>
@@ -227,7 +486,12 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
           </Paper>
         );
       })}
-
+      </Box>
+      </Fade>
+      
+ 
+    )}
+  
       <ModalNouvelEmployeur
         open={modalOpen}
         onClose={() => {
@@ -238,13 +502,22 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
         initialData={editingInfos ? editingInfos.data : null}
       />
 
-      <QuestionnairePersonnel
-        open={modalQuestionnaireOpen}
-        onClose={() => setModalQuestionnaireOpen(false)}
-        person={personnes[currentPersonIndex]}
-        personIndex={currentPersonIndex}
-        docRef={docRef}
-      />
+<QuestionnairePersonnel
+  open={modalQuestionnaireOpen}
+  onClose={() => setModalQuestionnaireOpen(false)}
+  personIndex={currentPersonIndex}
+  employeurIndex={currentEmployeurIndex}
+  docRef={docRef}
+  showErrors={showErrors}
+  setShowErrors={setShowErrors}
+  refreshFormData={refreshFormData}
+/>
+
+
+
+
+
+
 
 
       <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
@@ -267,11 +540,7 @@ const Etape2SituationFinanciere = ({ formData, setFormData, docRef }) => {
         <Alert onClose={() => setToastOpen(false)} severity="success" sx={{ width: "100%" }}>Employeur supprimé avec succès.</Alert>
       </Snackbar>
 
-      <Box display="flex" justifyContent="flex-end" mt={4}>
-        <Button variant="contained" disabled sx={{ backgroundColor: "#001BFF", fontWeight: "bold", px: 4, py: 2, "&:hover": { backgroundColor: "#0010b3" } }}>
-          CONTINUER
-        </Button>
-      </Box>
+
     </Box>
   );
 };

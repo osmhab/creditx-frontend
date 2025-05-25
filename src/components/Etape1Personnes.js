@@ -16,6 +16,8 @@ import {
   DialogActions,
 } from "@mui/material";
 
+
+
 import { Snackbar, Alert } from "@mui/material";
 
 
@@ -43,10 +45,14 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
     let updatedList;
     if (editingIndex !== null) {
       updatedList = [...personnes];
-      updatedList[editingIndex] = personne;
+      updatedList[editingIndex] = {
+        ...updatedList[editingIndex],  // conserve les anciennes données
+        ...personne                    // remplace uniquement ce qui a changé
+      };
     } else {
       updatedList = [...personnes, personne];
     }
+    
   
     const updated = { ...formData, personnes: updatedList };
     setFormData(updated);
@@ -78,6 +84,7 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
       </Typography>
 
       {formData?.personnes?.length > 0 && (
+      
         <Box mb={4}>
           {formData.personnes.map((p, index) => (
             <Paper
@@ -146,14 +153,17 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
       )}
 
 
-
       <Button
         variant="contained"
-        startIcon={<PersonAdd />}
+        startIcon={<PersonAdd />}    
         onClick={() => {
-          setEditingIndex(null);
-          setOpen(true);
+          if (formData?.personnes?.length < 2) {
+            setEditingIndex(null);
+            setOpen(true);
+          }
         }}
+
+        disabled={formData?.personnes?.length >= 2}
         sx={{
           backgroundColor: "#002BFF",
           fontWeight: "bold",
@@ -163,7 +173,7 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
           "&:hover": { backgroundColor: "#001ACC" },
         }}
       >
-        AJOUTER UN DEMANDEUR
+        AJOUTER UNE PERSONNE
       </Button>
 
           <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
@@ -222,22 +232,6 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
 
 
 
-      <Box display="flex" justifyContent="flex-end">
-        <Button
-          variant="contained"
-          onClick={nextStep}
-          sx={{
-            backgroundColor: "#002BFF",
-            fontWeight: "bold",
-            px: 4,
-            py: 2,
-            "&:hover": { backgroundColor: "#001ACC" },
-          }}
-          disabled={!(formData?.personnes?.length > 0)}
-        >
-          CONTINUER
-        </Button>
-      </Box>
 
       <ModalNouvellePersonne
         open={open}
