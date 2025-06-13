@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Box,
@@ -6,20 +7,15 @@ import {
   Grid,
   IconButton,
   Paper,
-  Tooltip
-} from "@mui/material";
-import {
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
-
-
-
-import { Snackbar, Alert } from "@mui/material";
-
 
 import PersonAdd from "@mui/icons-material/PersonAdd";
 import PersonIcon from "@mui/icons-material/Person";
@@ -31,40 +27,34 @@ import ModalNouvellePersonne from "./ModalNouvellePersonne";
 const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
-
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [personToDeleteIndex, setPersonToDeleteIndex] = useState(null);
-
   const [toastOpen, setToastOpen] = useState(false);
-
-
 
   const handleAddPersonne = (personne) => {
     const personnes = Array.isArray(formData?.personnes) ? formData.personnes : [];
-  
+
     let updatedList;
     if (editingIndex !== null) {
       updatedList = [...personnes];
       updatedList[editingIndex] = {
-        ...updatedList[editingIndex],  // conserve les anciennes données
-        ...personne                    // remplace uniquement ce qui a changé
+        ...updatedList[editingIndex],
+        ...personne,
       };
     } else {
       updatedList = [...personnes, personne];
     }
-    
-  
+
     const updated = { ...formData, personnes: updatedList };
     setFormData(updated);
     setEditingIndex(null);
-  
+
     if (docRef) {
       import("firebase/firestore").then(({ updateDoc }) => {
         updateDoc(docRef, { personnes: updatedList });
       });
     }
   };
-  
 
   const handleDeletePersonne = (index) => {
     const updatedList = formData.personnes.filter((_, i) => i !== index);
@@ -78,13 +68,12 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
   };
 
   return (
-    <Box>
+    <Box className="container">
       <Typography variant="h5" mb={4}>
         Personnes
       </Typography>
 
       {formData?.personnes?.length > 0 && (
-      
         <Box mb={4}>
           {formData.personnes.map((p, index) => (
             <Paper
@@ -95,11 +84,13 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                backgroundColor: "#f4f4f4",
+                borderRadius: 2,
+                backgroundColor: "#F8F9FA",
               }}
+              elevation={1}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <PersonIcon sx={{ fontSize: 40 }} />
+                <PersonIcon sx={{ fontSize: 40, color: "#0066FF" }} />
                 <Box>
                   <Typography variant="subtitle2">{p.civilite}</Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -121,117 +112,103 @@ const Etape1Personnes = ({ formData, setFormData, docRef, nextStep }) => {
                       </Tooltip>
                     )}
                   </Box>
-                  <Typography variant="body2">{p.dateNaissance}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {p.dateNaissance}
+                  </Typography>
                 </Box>
               </Box>
               <Box>
-              <IconButton
-                color="primary"
-                onClick={() => {
-                  setEditingIndex(index);
-                  setOpen(true);
-                }}
-              >
-                <EditIcon />
-              </IconButton>
+                <IconButton
+                  color="primary"
+                  onClick={() => {
+                    setEditingIndex(index);
+                    setOpen(true);
+                  }}
+                >
+                  <EditIcon />
+                </IconButton>
 
-              <IconButton
-                color="primary"
-                onClick={() => {
-                  setPersonToDeleteIndex(index);
-                  setConfirmDialogOpen(true);
-                }}
-              >
-                <DeleteIcon />
-              </IconButton>
-
-
+                <IconButton
+                  color="primary"
+                  onClick={() => {
+                    setPersonToDeleteIndex(index);
+                    setConfirmDialogOpen(true);
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
               </Box>
             </Paper>
           ))}
         </Box>
       )}
 
-
       <Button
         variant="contained"
-        startIcon={<PersonAdd />}    
+        startIcon={<PersonAdd />}
         onClick={() => {
           if (formData?.personnes?.length < 2) {
             setEditingIndex(null);
             setOpen(true);
           }
         }}
-
         disabled={formData?.personnes?.length >= 2}
-        sx={{
-          backgroundColor: "#002BFF",
-          fontWeight: "bold",
-          px: 4,
-          py: 2,
-          mb: 6,
-          "&:hover": { backgroundColor: "#001ACC" },
-        }}
+        sx={{ mb: 6 }}
       >
         AJOUTER UNE PERSONNE
       </Button>
 
-          <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
-          <DialogTitle>
-            Supprimer{" "}
-            {formData?.personnes?.[personToDeleteIndex]?.prenom}{" "}
-            {formData?.personnes?.[personToDeleteIndex]?.nom}
-          </DialogTitle>
+      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
+        <DialogTitle>
+          Supprimer{" "}
+          {formData?.personnes?.[personToDeleteIndex]?.prenom}{" "}
+          {formData?.personnes?.[personToDeleteIndex]?.nom}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer{" "}
+            <strong>
+              {formData?.personnes?.[personToDeleteIndex]?.prenom}{" "}
+              {formData?.personnes?.[personToDeleteIndex]?.nom}
+            </strong>
+            ? Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)} variant="outlined">
+            Annuler
+          </Button>
+          <Button
+            onClick={() => {
+              if (personToDeleteIndex !== null) {
+                handleDeletePersonne(personToDeleteIndex);
+                setToastOpen(true);
+              }
+              setConfirmDialogOpen(false);
+              setPersonToDeleteIndex(null);
+            }}
+            variant="contained"
+            color="error"
+          >
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      <DialogContent>
-      <DialogContentText>
-        Êtes-vous sûr de vouloir supprimer{" "}
-        <strong>
-          {formData?.personnes?.[personToDeleteIndex]?.prenom} {formData?.personnes?.[personToDeleteIndex]?.nom}
-        </strong>
-        ? Cette action est irréversible.
-      </DialogContentText>
-
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setConfirmDialogOpen(false)} variant="outlined">
-          Annuler
-        </Button>
-        <Button
-  onClick={() => {
-    if (personToDeleteIndex !== null) {
-      handleDeletePersonne(personToDeleteIndex);
-      setToastOpen(true); // 👈 Ajoute cette ligne
-    }
-    setConfirmDialogOpen(false);
-    setPersonToDeleteIndex(null);
-  }}
-  variant="contained"
-  color="error"
->
-  Supprimer
-</Button>
-
-      </DialogActions>
-    </Dialog>
-
-    <Snackbar
-  open={toastOpen}
-  autoHideDuration={4000}
-  onClose={() => setToastOpen(false)}
-  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
->
-  <Alert
-    onClose={() => setToastOpen(false)}
-    severity="success"
-    sx={{ width: "100%" }}
-  >
-    Personne supprimée avec succès.
-  </Alert>
-</Snackbar>
-
-
-
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={4000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setToastOpen(false)}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          Personne supprimée avec succès.
+        </Alert>
+      </Snackbar>
 
       <ModalNouvellePersonne
         open={open}

@@ -134,21 +134,26 @@ const [hasDeuxiemePersonne, setHasDeuxiemePersonne] = useState(false);
   const steps = ["Crédits", "Leasing", "Pension alimentaire", "Enfants à charge", "Revenus locatifs", "Poursuites"];
 
   const saveToFirestore = async (field, value) => {
-    if (!docRef || personIndex === null) return;
-    setLoading(true);
+  if (!docRef || personIndex === null) return;
+  setLoading(true);
 
-    const snap = await getDoc(docRef);
-    const data = snap.data();
-    const personnes = data.personnes || [];
-    const personne = personnes[personIndex] || {};
+  const snap = await getDoc(docRef);
+  const data = snap.data();
+  const personnes = data.personnes || [];
+  const personne = personnes[personIndex] || {};
 
-    const updatedPersonne = { ...personne, [field]: value };
-    const updatedPersonnes = [...personnes];
-    updatedPersonnes[personIndex] = updatedPersonne;
+  const updatedPersonne = { ...personne, [field]: value };
+  const updatedPersonnes = [...personnes];
+  updatedPersonnes[personIndex] = updatedPersonne;
 
-    await updateDoc(docRef, { personnes: updatedPersonnes });
-    setLoading(false);
-  };
+  await updateDoc(docRef, {
+    personnes: updatedPersonnes,
+    lastModificationAt: new Date().toISOString(), // ✅ horodatage ici
+  });
+
+  setLoading(false);
+};
+
 
   const handleNext = async () => {
     if (step === 0) {
@@ -242,7 +247,11 @@ const [hasDeuxiemePersonne, setHasDeuxiemePersonne] = useState(false);
             updatedPersonnes[0] = { ...updatedPersonnes[0], enfants: nouveauxEnfantsPourPersonne1 };
             updatedPersonnes[1] = { ...updatedPersonnes[1], enfants: nouveauxEnfantsPourPersonne2 };
     
-            await updateDoc(docRef, { personnes: updatedPersonnes });
+            await updateDoc(docRef, {
+              personnes: updatedPersonnes,
+              lastModificationAt: new Date().toISOString(),
+            });
+
           }
         }
       }
@@ -393,7 +402,11 @@ const [hasDeuxiemePersonne, setHasDeuxiemePersonne] = useState(false);
     }
   
     // 🔥 4. Sauvegarder
-    await updateDoc(docRef, { personnes: updatedPersonnes });
+    await updateDoc(docRef, {
+      personnes: updatedPersonnes,
+      lastModificationAt: new Date().toISOString(),
+    });
+
   };
 
   
@@ -724,7 +737,11 @@ const [hasDeuxiemePersonne, setHasDeuxiemePersonne] = useState(false);
                       : e
                   );
 
-                  await updateDoc(docRef, { personnes: updatedPersonnes });
+                  await updateDoc(docRef, {
+                    personnes: updatedPersonnes,
+                    lastModificationAt: new Date().toISOString(),
+                  });
+
                 }}
                 size="small"
                 fullWidth
@@ -873,7 +890,11 @@ const [hasDeuxiemePersonne, setHasDeuxiemePersonne] = useState(false);
           questionnaireComplet: true,
         };
 
-        await updateDoc(docRef, { personnes: updatedPersonnes });
+        await updateDoc(docRef, {
+          personnes: updatedPersonnes,
+          lastModificationAt: new Date().toISOString(),
+        });
+
         await refreshFormData();
         onClose();
       } else {

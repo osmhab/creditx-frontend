@@ -4,10 +4,10 @@ import { Box, Typography } from "@mui/material";
 const steps = [
   "Personnes",
   "Situation financière",
+  "Produit",
   "Financement",
-  "Immeuble",
   "Documents",
-  "Acceptation",
+  "Finalisation",
 ];
 
 const CustomStepper = ({ activeStep }) => {

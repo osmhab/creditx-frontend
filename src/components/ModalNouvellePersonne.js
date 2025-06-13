@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   Modal,
@@ -93,7 +94,6 @@ const ModalNouvellePersonne = ({ open, onClose, onSave, initialData }) => {
     }
 
     setErreur(false);
-
     const adresseComplete = `${formData.rueNumero}, ${formData.npaLocalite}`;
     onSave({ ...formData, dateNaissance: formData.dateNaissance.format("DD.MM.YYYY"), adresseComplete });
     onClose();
@@ -102,43 +102,28 @@ const ModalNouvellePersonne = ({ open, onClose, onSave, initialData }) => {
   const showPermis = formData.nationalite && formData.nationalite.toLowerCase() !== "suisse";
 
   return (
-    <Modal
-      open={open}
-      onClose={(_, reason) => {
-        if (reason !== "backdropClick") onClose();
-      }}
-    >
+    <Modal open={open} onClose={(_, reason) => reason !== "backdropClick" && onClose()}>
       <Box
         sx={{
-          width: 900,
+          width: { xs: "95%", md: 900 },
           maxHeight: "90vh",
           overflowY: "auto",
-          p: 4,
-          borderRadius: 1,
-          backgroundColor: "white",
+          p: { xs: 3, md: 4 },
+          borderRadius: 2,
+          bgcolor: "background.paper",
           position: "absolute",
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
+          boxShadow: 24,
         }}
       >
-        <Typography variant="h6" mb={2}>
+        <Typography variant="h6" mb={3}>
           {initialData ? "Modifier la personne" : "Saisir une nouvelle personne"}
         </Typography>
 
         {erreur && (
-          <Alert
-            severity="error"
-            sx={{
-              mb: 3,
-              backgroundColor: "#f44336",
-              color: "#fff",
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              borderRadius: 1,
-            }}
-          >
+          <Alert severity="error" sx={{ mb: 3 }}>
             Saisissez tous les champs obligatoires.
           </Alert>
         )}
@@ -173,26 +158,10 @@ const ModalNouvellePersonne = ({ open, onClose, onSave, initialData }) => {
 
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Rue et numéro"
-              name="rueNumero"
-              value={formData.rueNumero}
-              onChange={handleChange}
-              margin="normal"
-              error={erreur && !formData.rueNumero}
-            />
+            <TextField fullWidth label="Rue et numéro" name="rueNumero" value={formData.rueNumero} onChange={handleChange} margin="normal" error={erreur && !formData.rueNumero} />
           </Grid>
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="NPA / Localité"
-              name="npaLocalite"
-              value={formData.npaLocalite}
-              onChange={handleChange}
-              margin="normal"
-              error={erreur && !formData.npaLocalite}
-            />
+            <TextField fullWidth label="NPA / Localité" name="npaLocalite" value={formData.npaLocalite} onChange={handleChange} margin="normal" error={erreur && !formData.npaLocalite} />
           </Grid>
         </Grid>
 
@@ -231,10 +200,10 @@ const ModalNouvellePersonne = ({ open, onClose, onSave, initialData }) => {
           <InputLabel>État civil</InputLabel>
           <Select name="etatCivil" value={formData.etatCivil} onChange={handleChange}>
             <MenuItem value="">-- État civil --</MenuItem>
-            <MenuItem value="celibataire">Célibataire</MenuItem>
-            <MenuItem value="marie">Marié(e)</MenuItem>
-            <MenuItem value="divorce">Divorcé(e)</MenuItem>
-            <MenuItem value="veuf">Veuf / Veuve</MenuItem>
+            <MenuItem value={1}>Célibataire</MenuItem>
+            <MenuItem value={2}>Marié(e)</MenuItem>
+            <MenuItem value={3}>Divorcé(e)</MenuItem>
+            <MenuItem value={4}>Veuf / Veuve</MenuItem>
           </Select>
         </FormControl>
 

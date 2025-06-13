@@ -1,100 +1,94 @@
+
 import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#000000", // Noir
+      main: "#001BFF", // Bleu CreditX
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: "#001BFF", // Bleu accent
-      dark: "#0010b3",
+      // anciennement vert, désormais bleu pour uniformité
+    success: {
+      main: "#001BFF",
+      contrastText: "#FFFFFF",
+    },
+      main: "#001BFF", // Vert validation
       contrastText: "#FFFFFF",
     },
     error: {
-      main: "#D32F2F",
-      contrastText: "#FFFFFF",
-    },
-    success: {
-      main: "#4CAF50",
-      dark: "#388E3C",
+      main: "#FF5A5F",
       contrastText: "#FFFFFF",
     },
     background: {
-      default: "#f0f0f0",
+      default: "#FFFFFF",
+      paper: "#FFFFFF",
     },
-    divider: "#CCCCCC",
+    text: {
+      primary: "#111111",
+      secondary: "#444444",
+    },
+    divider: "#E0E0E0",
+  },
+
+  typography: {
+    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontSize: 14,
+    fontWeightRegular: 400,
+    fontWeightMedium: 500,
+    fontWeightBold: 700,
+  },
+
+  shape: {
+    borderRadius: 8,
   },
 
   components: {
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          borderRadius: 0,
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: "#000000",
-          },
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: "#000000",
-          },
-        },
-      },
-    },
-
-    MuiToggleButtonGroup: {
-      styleOverrides: {
-        root: {
-          backgroundColor: "#ECEFF1", // fond du groupe
-          borderRadius: 6,
-          padding: 2,
-        },
-      },
-    },
-    MuiToggleButton: {
-      styleOverrides: {
-        root: {
-          border: "none",
-          borderRadius: 6,
-          fontWeight: 500,
-          color: "#888",
-          backgroundColor: "transparent",
-          '&.Mui-selected': {
-            backgroundColor: "#fff",
-            color: "#000",
-            boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
-          },
-          '&:not(.Mui-selected):hover': {
-            backgroundColor: "#f5f5f5",
-          },
-        },
-      },
-    },
-
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 0,
-          paddingTop: "14px",
-          paddingBottom: "14px",
-          paddingLeft: "24px",
-          paddingRight: "24px",
+          borderRadius: 8,
+          padding: "12px 20px",
           fontSize: "1rem",
           fontWeight: 500,
           textTransform: "none",
         },
         containedPrimary: {
-          backgroundColor: "#000000",
+          backgroundColor: "#001BFF",
           '&:hover': {
-            backgroundColor: "#333333",
+            backgroundColor: "#0052cc",
           },
-          color: "#FFFFFF",
         },
         outlinedPrimary: {
-          borderColor: "#000000",
-          color: "#000000",
+          borderColor: "#001BFF",
+          color: "#001BFF",
           '&:hover': {
-            backgroundColor: "#f0f0f0",
-            borderColor: "#333333",
+            backgroundColor: "#F0F7FF",
+            borderColor: "#0052cc",
+          },
+        },
+      },
+    },
+
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: "#001BFF",
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: "#001BFF",
+          },
+        },
+      },
+    },
+
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          '&.Mui-focused': {
+            color: "#001BFF",
           },
         },
       },
@@ -103,52 +97,39 @@ const theme = createTheme({
     MuiCheckbox: {
       styleOverrides: {
         root: {
-          color: "#000000",
+          color: "#001BFF",
           '&.Mui-checked': {
-            color: "#000000",
+            color: "#001BFF",
           },
         },
       },
     },
+
     MuiRadio: {
       styleOverrides: {
         root: {
-          color: "#000000",
+          color: "#001BFF",
           '&.Mui-checked': {
-            color: "#000000",
+            color: "#001BFF",
           },
         },
       },
     },
+
     MuiSwitch: {
       styleOverrides: {
         switchBase: {
-          color: "#000000",
+          color: "#001BFF",
           '&.Mui-checked': {
-        color: "#001BFF", // secondary.main
-      },
-      '&.Mui-checked + .MuiSwitch-track': {
-        backgroundColor: "#001BFF", // secondary.main
-      },
-        },
-      },
-    },
-    MuiInputLabel: {
-      styleOverrides: {
-        root: {
-          '&.Mui-focused': {
-            color: "#000000",
+            color: "#001BFF",
+          },
+          '&.Mui-checked + .MuiSwitch-track': {
+            backgroundColor: "#001BFF",
           },
         },
       },
     },
-    MuiSelect: {
-      styleOverrides: {
-        outlined: {
-          borderColor: "#000000",
-        },
-      },
-    },
+
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
@@ -157,13 +138,14 @@ const theme = createTheme({
           padding: "12px 16px",
           backgroundColor: "#333333",
           color: "#FFFFFF",
-          borderRadius: 0,
+          borderRadius: 8,
         },
         arrow: {
           color: "#333333",
         },
       },
     },
+
     MuiStepConnector: {
       styleOverrides: {
         line: {
@@ -171,6 +153,7 @@ const theme = createTheme({
         },
       },
     },
+
     MuiStepIcon: {
       styleOverrides: {
         root: {
@@ -180,6 +163,35 @@ const theme = createTheme({
           '&.Mui-completed': {
             color: "#001BFF",
           },
+        },
+      },
+    },
+
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          border: "none",
+          borderRadius: 8,
+          fontWeight: 500,
+          color: "#444",
+          '&.Mui-selected': {
+            backgroundColor: "#E3F2FD",
+            color: "#001BFF",
+            boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
+          },
+          '&:not(.Mui-selected):hover': {
+            backgroundColor: "#F5F5F5",
+          },
+        },
+      },
+    },
+
+    MuiToggleButtonGroup: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#F1F3F5",
+          borderRadius: 8,
+          padding: 4,
         },
       },
     },

@@ -1,3 +1,4 @@
+// ✅ VERSION STYLISÉE AVEC DESIGN CREDITX
 import React, { useState, useEffect } from "react";
 
 import { getDoc } from "firebase/firestore";
@@ -119,11 +120,15 @@ const Etape2SituationFinanciere = ({
 
 
   const updateFirestore = (updatedPersonnes) => {
-    if (!docRef) return;
-    import("firebase/firestore").then(({ updateDoc }) => {
-      updateDoc(docRef, { personnes: updatedPersonnes });
+  if (!docRef) return;
+  import("firebase/firestore").then(({ updateDoc }) => {
+    updateDoc(docRef, {
+      personnes: updatedPersonnes,
+      lastModificationAt: new Date().toISOString(), // ✅ ici
     });
-  };
+  });
+};
+
 
   const handleToggle = (index) => {
     if (openedIndices.includes(index)) {
@@ -232,12 +237,12 @@ const Etape2SituationFinanciere = ({
   
 
   return (
-    <Box>
+    <Box className="container">
       <Typography variant="h5" mb={4}>Données financières</Typography>
 
       {loading ? (
   [...Array(2)].map((_, i) => (
-    <Paper key={i} sx={{ mb: 2, p: 2 }}>
+    <Paper key={i} sx={{ mb: 2, p: 2, borderRadius: 2, backgroundColor: "#F9FAFB", boxShadow: 1 }}>
       <Box display="flex" alignItems="center" gap={2}>
         <CustomSkeleton variant="circular" width={36} height={36}/>
         <Box flexGrow={1}>
@@ -255,7 +260,7 @@ const Etape2SituationFinanciere = ({
 
 
   <Fade in={!loading} timeout={600} unmountOnExit>
-<Box>
+<Box className="container">
       {personnes.map((pers, pIdx) => {
         const isOpen = openedIndices.includes(pIdx);
         const employeurs = pers.employeurs || [];
@@ -317,8 +322,8 @@ const Etape2SituationFinanciere = ({
 
 
 
-                <Box>
-                  <Typography fontWeight="bold" color="text.primary">Situation financière</Typography>
+                <Box className="container">
+                  <Typography sx={{ fontWeight: 600 }} color="text.primary">Situation financière</Typography>
                     <Box display="flex" alignItems="center" gap={1} color="text.secondary">
 
                     <PersonIcon />
@@ -326,11 +331,11 @@ const Etape2SituationFinanciere = ({
                   </Box>
                 </Box>
               </Box>
-              <IconButton size="small">{isOpen ? <ExpandLessIcon sx={{ color: theme.palette.secondary.main }} /> : <ExpandMoreIcon sx={{ color: theme.palette.secondary.main }} />}</IconButton>
+              <IconButton size="small" sx={{ borderRadius: 2, "&:hover": { backgroundColor: "#F0F4FF" } }}>{isOpen ? <ExpandLessIcon sx={{ color: theme.palette.secondary.main }} /> : <ExpandMoreIcon sx={{ color: theme.palette.secondary.main }} />}</IconButton>
             </Box>
 
             <Collapse in={isOpen} timeout="auto" unmountOnExit>
-              <Box mt={2} p={2} bgcolor="white" border="1px solid #ccc">
+              <Box mt={2} p={2} sx={{ backgroundColor: "#FFFFFF", borderRadius: 2, p: 2, border: "1px solid #E0E0E0" }} border="1px solid #ccc">
                 <Box mb={2}>
                   <Typography fontWeight={500}>{pers.civilite}</Typography>
                   <Typography>{pers.prenom} {pers.nom}</Typography>
@@ -349,14 +354,14 @@ const Etape2SituationFinanciere = ({
                           <BadgeIcon sx={{ color: "secondary", mr: 2, mt: 0.5 }} />
                           <ListItemText primary={emp.nom} secondary={emp.adresse} />
                           <ListItemSecondaryAction>
-                            <IconButton size="small" onClick={() => {
+                            <IconButton size="small" sx={{ borderRadius: 2, "&:hover": { backgroundColor: "#F0F4FF" } }} onClick={() => {
                               setCurrentPersonIndex(pIdx);
                               setEditingInfos({ personIndex: pIdx, empIndex: eIdx, data: emp });
                               setModalOpen(true);
                             }}>
                               <EditIcon fontSize="small" />
                             </IconButton>
-                            <IconButton size="small" onClick={() => {
+                            <IconButton size="small" sx={{ borderRadius: 2, "&:hover": { backgroundColor: "#F0F4FF" } }} onClick={() => {
                               setToDelete({ personIndex: pIdx, empIndex: eIdx });
                               setConfirmDialogOpen(true);
                             }}>
@@ -393,88 +398,92 @@ const Etape2SituationFinanciere = ({
 
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', mt: 2 }}>
   <Button
-    variant="contained"
-    onClick={() => {
-      setCurrentPersonIndex(pIdx);
-      setEditingInfos(null);
-      setModalOpen(true);
-    }}
-    sx={{
-      backgroundColor: theme.palette.secondary.main,
-      fontWeight: "bold",
-      px: 4,
-      py: 1.5,
-      "&:hover": { backgroundColor: theme.palette.secondary.dark }
-    }}
-
-  >
-    AJOUTER UN EMPLOYEUR
-  </Button>
-
-  <Button
-    data-bouton-questionnaire
-    onClick={() => {
-      setCurrentPersonIndex(pIdx);
-      setShowErrors(true); // 🔥 Important pour forcer l'affichage des erreurs
-      setCurrentEmployeurIndex(0);
-      setModalQuestionnaireOpen(true);
-    }}
-    variant="outlined"
-    sx={{
-      borderColor: isQuestionnaireCompleted(pers) ? 'primary.main' : 'error.main',
-      color: isQuestionnaireCompleted(pers) ? 'primary.main' : 'error.main',
-      fontWeight: 'bold',
-      display: 'flex',
-      alignItems: 'center',
-      px: 2.5,
-      py: 1.5,
-      gap: 1.5,
-      textTransform: 'none',
-      borderWidth: 2,
-      transition: "all 0.3s ease",
-      "&:hover": {
-        borderColor: isQuestionnaireCompleted(pers) ? 'primary.dark' : 'primary.dark',
-        backgroundColor: isQuestionnaireCompleted(pers) ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-        color: isQuestionnaireCompleted(pers) ? 'primary.dark' : 'primary.dark',
-      },
-    }}
-  >
-    {isQuestionnaireCompleted(pers) ? (
-  <Box
-    sx={{
-      width: 28,
-      height: 28,
-      backgroundColor: theme.palette.success.main,
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }}
-  >
-    <CheckIcon sx={{ fontSize: 18, color: "#fff" }} />
-  </Box>
-) : (
-  <Box
-    sx={{
-      width: 28,
-      height: 28,
-      backgroundColor: theme.palette.error.main,
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }}
-  >
-    <CloseIcon sx={{ fontSize: 18, color: "#fff" }} />
-  </Box>
-)}
+  variant="contained"
+  onClick={() => {
+    setCurrentPersonIndex(pIdx);
+    setEditingInfos(null);
+    setModalOpen(true);
+  }}
+  sx={{
+    borderRadius: 2,
+    px: 4,
+    py: 1.5,
+    fontWeight: "bold",
+    textTransform: "none",
+    backgroundColor: theme.palette.secondary.main,
+    "&:hover": {
+      backgroundColor: theme.palette.secondary.dark,
+    },
+  }}
+>
+  AJOUTER UN EMPLOYEUR
+</Button>
 
 
-    <span style={{ fontWeight: "bold", fontSize: "1rem" }}>
-  QUESTIONNAIRE PERSONNEL
-</span>
+<Button
+  data-bouton-questionnaire
+  onClick={() => {
+    setCurrentPersonIndex(pIdx);
+    setShowErrors(true); // 🔥 Important pour forcer l'affichage des erreurs
+    setCurrentEmployeurIndex(0);
+    setModalQuestionnaireOpen(true);
+  }}
+  variant="outlined"
+  sx={{
+    borderRadius: 2,
+    px: 2.5,
+    py: 1.5,
+    fontWeight: 'bold',
+    textTransform: 'none',
+    borderWidth: 2,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1.5,
+    borderColor: isQuestionnaireCompleted(pers) ? 'primary.main' : 'error.main',
+    color: isQuestionnaireCompleted(pers) ? 'primary.main' : 'error.main',
+    transition: "all 0.3s ease",
+    "&:hover": {
+      borderColor: isQuestionnaireCompleted(pers) ? 'primary.dark' : 'primary.dark',
+      backgroundColor: "rgba(0, 0, 0, 0.08)",
+      color: 'primary.dark',
+    },
+  }}
+>
+  {isQuestionnaireCompleted(pers) ? (
+    <Box
+      sx={{
+        width: 28,
+        height: 28,
+        backgroundColor: theme.palette.success.main,
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
+    >
+      <CheckIcon sx={{ fontSize: 18, color: "#fff" }} />
+    </Box>
+  ) : (
+    <Box
+      sx={{
+        width: 28,
+        height: 28,
+        backgroundColor: theme.palette.error.main,
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
+    >
+      <CloseIcon sx={{ fontSize: 18, color: "#fff" }} />
+    </Box>
+  )}
 
-  </Button>
+  <span style={{ fontWeight: "bold", fontSize: "1rem" }}>
+    QUESTIONNAIRE PERSONNEL
+  </span>
+</Button>
+
 </Box>
 
 
@@ -526,13 +535,13 @@ const Etape2SituationFinanciere = ({
           <DialogContentText>Êtes-vous sûr de vouloir supprimer cet employeur ? Cette action est irréversible.</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDialogOpen(false)} variant="outlined">Annuler</Button>
+          <Button onClick={() => setConfirmDialogOpen(false)} variant="outlined" sx={{ borderRadius: 2, px: 3, py: 1.5, fontWeight: 500, textTransform: "none", borderWidth: 2 }}>Annuler</Button>
           <Button onClick={() => {
             if (toDelete) handleDeleteEmployeur(toDelete.personIndex, toDelete.empIndex);
             setConfirmDialogOpen(false);
             setToDelete(null);
             setToastOpen(true);
-          }} variant="contained" color="error">Supprimer</Button>
+          }} variant="contained" sx={{ borderRadius: 2, px: 3, py: 1.5, fontWeight: 500, textTransform: "none", "&:hover": { backgroundColor: "#0052CC" } }} color="error">Supprimer</Button>
         </DialogActions>
       </Dialog>
 

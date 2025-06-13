@@ -7,13 +7,29 @@ import {
   Button,
   Typography,
   Box,
+  Tooltip
 } from "@mui/material";
-import { db } from "./firebase-config";
-import { doc, getDoc } from "firebase/firestore";
 
-const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
+
+
+import { db } from "./firebase-config";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+
+// Dictionnaire de l'état civil 
+    const etatCivilLabels = {
+        1: "Célibataire",
+        2: "Marié(e)",
+        3: "Divorcé(e)",
+        4: "Veuf / Veuve",
+      };
+
+
+const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer, reloadFaisabilite }) => {
   const [resultat, setResultat] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [donneesResume, setDonneesResume] = useState(null);
+
 
   useEffect(() => {
     const fetchDataAndCalculate = async () => {
@@ -101,8 +117,14 @@ const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
       // --- Conditions ---
       const okDur = fondsDurs >= 0.1 * valeurBien;
       const okTotal = fondsTotaux >= 0.2 * valeurBien;
-      const okCharges = ratioCharges <= 0.33;
-      const faisable = okDur && okTotal && okCharges && okEstimation;
+      const okCharges = ratioCharges <= 0.333;
+      const faisable = okDur && okTotal && okCharges;
+      const faisableAvecEstimation = faisable && okEstimation;
+      const horodatage = new Date().toISOString(); // pour éviter de le recalculer 2x
+
+
+
+
 
       setResultat({
         faisable,
@@ -125,10 +147,47 @@ const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
         revenuBase,
         bonusTotal,
         bonusCount,
+        horodatage,
       });
+
+            // Dictionnaire etat civil -
+
+      if (user?.uid) {
+  const ref = doc(db, "dossiers", user.uid);
+  await updateDoc(ref, {
+    resultatsFaisabilite: {
+      faisable,
+      okDur,
+      okTotal,
+      okCharges,
+      okEstimation,
+      interet,
+      entretien,
+      amortissement,
+      mensualites: chargesMensuelles,
+      revenuTotal: revenuNet,
+      chargesTotales,
+      valeurBien,
+      valeurBancaire,
+      fondsTotaux,
+      fondsDurs,
+      ratioCharges,
+      bonusMoyen,
+      revenuBase,
+      bonusTotal,
+      bonusCount,
+      horodatage,
+    },
+    lastFaisabiliteAt: new Date().toISOString()  // 👈
+  });
+}
+
+setDonneesResume({ data, bien });
 
       setLoading(false);
     };
+
+
 
     if (open) fetchDataAndCalculate();
   }, [open, user]);
@@ -146,6 +205,208 @@ const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
   <Typography gutterBottom>
     ✅ Ce crédit est <strong>faisable</strong>.
   </Typography>
+
+
+{donneesResume && (() => {
+  const data = donneesResume.data;
+  const bien = donneesResume.bien;
+
+  return (
+    <Box sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h6" gutterBottom>📄 Résumé du dossier</Typography>
+
+      {/* Personnes */}
+      <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>👤 Informations sur les personnes</Typography>
+      {data.personnes?.map((p, index) => (
+        <Box key={index} sx={{ mb: 2 }}>
+          <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>{p.prenom} {p.nom}</Typography>
+          <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", backgroundColor: "#fafafa" }}>
+            <Box component="tbody">
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee", width: "40%" }}>Date de naissance</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{p.dateNaissance || "Non précisée"}</Box>
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>État civil</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>
+                  {etatCivilLabels[p.etatCivil] || "Non précisé"}
+                </Box>
+
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Profession</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{p.profession || "Non précisée"}</Box>
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Nationalité</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{p.nationalite || "Non précisée"}</Box>
+              </Box>
+              {p.nationalite !== "Suisse" && (
+                <Box component="tr">
+                  <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Permis de séjour</Box>
+                  <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{p.permisSejour || "Non précisé"}</Box>
+                </Box>
+              )}
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Enfants à charge</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>
+                  {Array.isArray(p.enfants) && p.enfants.length > 0
+                    ? p.enfants.map((e, i) => e.prenom).join(", ")
+                    : "Aucun"}
+                </Box>
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Crédits</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{Number(p.mensualiteCredits || 0).toLocaleString("fr-CH")} CHF / mois</Box>
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Leasing</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{Number(p.mensualiteLeasing || 0).toLocaleString("fr-CH")} CHF / mois</Box>
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Pension alimentaire</Box>
+                <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{Number(p.montantPension || 0).toLocaleString("fr-CH")} CHF / mois</Box>
+              </Box>
+              <Box component="tr">
+                <Box component="td" sx={{ p: 1 }}>Revenus locatifs</Box>
+                <Box component="td" sx={{ p: 1 }}>{Number(p.montantRevenusLocatifs || 0).toLocaleString("fr-CH")} CHF / mois</Box>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      ))}
+
+{/* Employeurs */}
+<Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>🏢 Informations sur les employeurs</Typography>
+{data.personnes?.map((p, indexP) => (
+  p.employeurs?.map((e, indexE) => (
+    <Box key={`${indexP}-${indexE}`} sx={{ mb: 2 }}>
+      <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
+        {p.prenom} {p.nom} — {e.nom || "Employeur inconnu"}
+      </Typography>
+      <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", backgroundColor: "#f5f5f5" }}>
+        <Box component="tbody">
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee", width: "40%" }}>Statut</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{e.statutEntreprise || "N/A"}</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Taux d'activité</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{e.tauxActivite || "N/A"} %</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Revenu annuel (sans bonus)</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>
+              {e.revenusReguliers
+                ? `${Number(e.revenu || 0).toLocaleString("fr-CH")} CHF` +
+                  (e.revenuMensuel && e.frequenceMensuelle ? ` (${Number(e.revenuMensuel).toLocaleString("fr-CH")} × ${e.frequenceMensuelle})` : "")
+                : (() => {
+                    const annees = Object.keys(e.revenusIrr || {}).filter((k) => k.startsWith("revenuAnnuel"));
+                    const somme = annees.reduce((acc, key) => acc + Number(e.revenusIrr[key] || 0), 0);
+                    const moyenne = annees.length ? somme / annees.length : 0;
+             
+
+    
+                    return (
+                      <Box display="flex" alignItems="center" gap={1}>
+                        {Math.round(moyenne).toLocaleString("fr-CH")} CHF
+                        <Tooltip
+                          title={
+                            <Box>
+                              <Typography variant="caption" fontWeight="bold" sx={{ mb: 0.5 }}>
+                                Moyenne des années :
+                              </Typography>
+                              {annees.map((key) => {
+                                const annee = key.replace("revenuAnnuel", "");
+                                const valeur = e.revenusIrr?.[key] || 0;
+                                return (
+                                  <Box key={key} display="flex" justifyContent="space-between" sx={{ minWidth: 180 }}>
+                                    <Typography variant="caption">{annee} :</Typography>
+                                    <Typography variant="caption" fontWeight="bold">
+                                      CHF {Number(valeur).toLocaleString("fr-CH")}
+                                    </Typography>
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          }
+                          placement="top"
+                          arrow
+                        >
+                          <InfoOutlined fontSize="small" sx={{ color: "#888", cursor: "help" }} />
+                        </Tooltip>
+                      </Box>
+                    );
+                  })()
+              }
+            </Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Revenu irrégulier</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>
+              {e.revenusReguliers === false ? "Oui" : "Non"}
+            </Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1 }}>Bonus</Box>
+            <Box component="tr">
+          <Box component="td" sx={{ p: 1 }}>
+            {(() => {
+              const bonusAnnees = Object.keys(e.revenusIrr || {}).filter((k) => k.startsWith("bonus"));
+              const total = bonusAnnees.reduce((acc, key) => acc + Number(e.revenusIrr[key] || 0), 0);
+              const moyenne = bonusAnnees.length ? total / bonusAnnees.length : 0;
+              const ponderee = moyenne * 0.8;
+              return `${Math.round(ponderee).toLocaleString("fr-CH")} CHF (moyenne pondérée à 80%)`;
+              })()}
+            </Box>
+          </Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  ))
+))}
+
+
+      {/* Bien immobilier */}
+      <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>🏠 Informations sur le bien immobilier</Typography>
+      <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", backgroundColor: "#f0f0f0" }}>
+        <Box component="tbody">
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee", width: "40%" }}>Adresse</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{bien?.adresseComplete || "Non précisée"}</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Type</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{bien?.type || "N/A"}</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Surface</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{bien?.surfaceHabitable || "N/A"} m²</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Année de construction</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{bien?.anneeConstruction || "N/A"}</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>Prix d'achat</Box>
+            <Box component="td" sx={{ p: 1, borderBottom: "1px solid #eee" }}>{Number(resultat.valeurBien).toLocaleString("fr-CH")} CHF</Box>
+          </Box>
+          <Box component="tr">
+            <Box component="td" sx={{ p: 1 }}>Estimation bancaire IA</Box>
+            <Box component="td" sx={{ p: 1 }}>{Number(resultat.valeurBancaire).toLocaleString("fr-CH")} CHF</Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+})()}
+
+
+
+
+
+
 
   <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', mt: 2 }}>
     <Box component="thead" sx={{ backgroundColor: '#f9f9f9' }}>
@@ -182,16 +443,26 @@ const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
         <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>{resultat.revenuTotal.toLocaleString("fr-CH")} CHF</Box>
         <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>—</Box>
       </Box>
-      {/*
-        <Box component="tr">
-        <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>Estimation bancaire</Box>
-        <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>{resultat.valeurBancaire.toLocaleString("fr-CH")} CHF</Box>
-        <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>
-          (tolérance max : {(resultat.valeurBancaire * 1.1).toLocaleString("fr-CH")} CHF)
-        </Box>
-    
-      </Box>
-      */}
+
+      {resultat.faisable && !resultat.okEstimation && (
+  <Box sx={{ mt: 2, mb: 3, p: 2, backgroundColor: "#fff3e0", border: "1px solid #ffb74d", borderRadius: 1 }}>
+    <Typography variant="body2" color="text.secondary">
+      ⚠️ Le prix d’achat dépasse de plus de 10 % la valeur estimée par l’IA. Cela pourrait poser problème pour certaines banques.
+    </Typography>
+  </Box>
+)}
+
+      
+<Box component="tr">
+  <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>Estimation bancaire</Box>
+  <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>
+    {resultat.valeurBancaire.toLocaleString("fr-CH")} CHF
+  </Box>
+  <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>
+    (tolérance max : {(resultat.valeurBancaire * 1.1).toLocaleString("fr-CH")} CHF)
+  </Box>
+</Box>
+
     </Box>
   </Box>
 </>
@@ -245,6 +516,12 @@ const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
         </Box>
       )}
       {!resultat.okEstimation && (
+        <Box sx={{ mt: 2, mb: 3, p: 2, backgroundColor: "#fff3e0", border: "1px solid #ffb74d", borderRadius: 1 }}>
+    <Typography variant="body2" color="text.secondary">
+      ⚠️ Le prix d’achat dépasse de plus de 10 % la valeur estimée par l’IA. Cela pourrait poser problème pour certaines banques.
+    </Typography>
+  </Box>
+      )}
         <Box component="tr">
           <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>Estimation bancaire</Box>
           <Box component="td" sx={{ p: 1, borderBottom: '1px dashed #ccc' }}>
@@ -307,11 +584,19 @@ const ModalFaisabiliteCredit = ({ open, onClose, user, onContinuer }) => {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Fermer</Button>
-        {resultat.faisable && (
-          <Button variant="contained" onClick={onContinuer}>
-            Continuer
-          </Button>
-        )}
+        
+          <Button
+  variant="contained"
+  onClick={async () => {
+    if (reloadFaisabilite) {
+      await reloadFaisabilite(); // ✅ recharge depuis Firestore
+    }
+    onContinuer();
+  }}
+>
+  Continuer
+</Button>
+
       </DialogActions>
     </Dialog>
   );

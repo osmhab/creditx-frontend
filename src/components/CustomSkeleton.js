@@ -8,11 +8,11 @@ const CustomSkeleton = ({ variant = "text", width = "100%", height = 20, sx = {}
       variant={variant}
       width={width}
       height={height}
-      animation={false}
+      animation="wave"
       sx={{
         background: `linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%)`,
         backgroundSize: '200% 100%',
-        animation: 'shimmer 1.4s infinite',
+        animation: 'shimmer 2.2s infinite',
         '@keyframes shimmer': {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },

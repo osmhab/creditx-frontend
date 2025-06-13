@@ -9,6 +9,8 @@ import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import { CircularProgress, Container, Box, Typography, Button } from "@mui/material";
 import { Collapse } from "@mui/material";
 import { Alert } from "@mui/material";
+import { Backdrop } from "@mui/material";
+
 
 
 
@@ -18,8 +20,7 @@ import Etape1InformationsPersonnelles from "./components/Etape1InformationsPerso
 import Etape2SituationFinanciere from "./components/Etape2SituationFinanciere";
 import Etape3Produit from "./Etape3Produit";
 import NouvelleEtape3Financement from "./components/NouvelleEtape3Financement";
-import Etape4Immeuble from "./components/Etape4Immeuble";
-import Etape5Documents from "./components/Etape5Documents";
+import Etape5Documents from "./Etape5Documents";
 import CustomStepper from "./components/CustomStepper";
 import { estimerValeurBienAvecOpenAI } from "./utils/estimationAI";
 import ModalFaisabilite from "./ModalFaisabiliteCredit";
@@ -116,6 +117,22 @@ function FormulaireDossier() {
       setFormData(data);
     }
   };
+
+  const reloadResultatsFaisabilite = async () => {
+  if (!user) return;
+  const ref = doc(db, "dossiers", user.uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const data = snap.data();
+    if (data?.resultatsFaisabilite) {
+      setFormData((prev) => ({
+        ...prev,
+        resultatsFaisabilite: data.resultatsFaisabilite,
+      }));
+    }
+  }
+};
+
   
 
   const saveStep = async (newStep) => {
@@ -173,7 +190,41 @@ function FormulaireDossier() {
   };
   
   
-  
+const handleContinuerEtape4 = async () => {
+  if (!user) return;
+  setLoadingContinuer(true);
+
+  const ref = doc(db, "dossiers", user.uid);
+  const snap = await getDoc(ref);
+  const data = snap.data();
+
+  const estimationExistante = data?.resultatsFaisabilite;
+  const modifServeur = data?.lastModificationAt;
+  const horodatage = estimationExistante?.horodatage;
+
+  const estimationValide = horodatage && modifServeur && horodatage === modifServeur;
+
+  if (estimationValide) {
+    setModalFaisabiliteOpen(true);
+  } else {
+    await estimerValeurBienAvecOpenAI(data, user, (updatedData) => {
+      // 🛠️ Corrigé ici : on fusionne avec les données existantes
+      setFormData((prev) => ({
+        ...prev,
+        ...updatedData,
+      }));
+
+      setModalFaisabiliteOpen(true);
+    });
+  }
+
+  setLoadingContinuer(false);
+};
+
+
+
+
+
   
   
   
@@ -250,6 +301,7 @@ function FormulaireDossier() {
     setFormData={setFormData}
     docRef={docRef}
     onContinuer={nextStep} // ✅ à transmettre
+    reloadFaisabilite={reloadResultatsFaisabilite}
   />
 )}
 
@@ -257,20 +309,14 @@ function FormulaireDossier() {
 
 
 
-        {step === 5 && (
-          <Etape4Immeuble
-            formData={formData}
-            setFormData={setFormData}
-            user={user}
-          />
-        )}
 
-        {step === 6 && (
-          <Etape5Documents
-            dossierId={user.uid}
-            onReady={(val) => setDocumentsComplets(val)}
-          />
-        )}
+        {step === 5 && (
+  <Etape5Documents
+    dossierId={user.uid}
+    onReady={(val) => setDocumentsComplets(val)}
+      />
+    )}
+
 
         {step > 0 && step <= 6 && (
   <>
@@ -327,7 +373,7 @@ function FormulaireDossier() {
       {/* ▶️ Bouton Continuer (étapes 2 à 5) */}
       {step < 6 && step !== 3 && (
 
-
+<>
         <Button
           variant="contained"
           endIcon={
@@ -351,13 +397,10 @@ function FormulaireDossier() {
           }
           onClick={() => {
             if (step === 4) {
-  setLoadingContinuer(true);
-  estimerValeurBienAvecOpenAI(formData, user, () => {
-    setLoadingContinuer(false);
-    setModalFaisabiliteOpen(true); // ✅ Ouvre le modal après estimation IA
-  }).finally(() => setLoadingContinuer(false));
-  return;
-}
+              handleContinuerEtape4();
+              return;
+            }
+
 
 
   if (step === 5) {
@@ -375,6 +418,50 @@ function FormulaireDossier() {
         >
           {loadingContinuer ? "Calcul en cours..." : "Continuer"}
         </Button>
+
+<Backdrop
+  sx={{
+    color: '#000',
+    zIndex: (theme) => theme.zIndex.drawer + 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+  }}
+  open={loadingContinuer}
+>
+  <Box
+    sx={{
+      backgroundColor: '#fff',
+      p: 4,
+      borderRadius: 4,
+      boxShadow: 3,
+      textAlign: 'center',
+      maxWidth: 300,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}
+  >
+    <img
+      src="/logo.png"
+      alt="CreditX"
+      style={{ height: 50, marginBottom: 16 }}
+    />
+    <CircularProgress size={28} color="secondary" sx={{ mb: 2 }} />
+    <Typography variant="h6" gutterBottom>
+      CreditX AI
+    </Typography>
+    <Typography variant="body2">
+      Analyse de faisabilité en cours...
+    </Typography>
+  </Box>
+</Backdrop>
+
+
+</>
+
       )}
     </Box>
   </>
@@ -385,8 +472,15 @@ function FormulaireDossier() {
   onClose={() => setModalFaisabiliteOpen(false)}
   formData={formData}
   user={user}
-  onContinuer={nextStep}
+  onContinuer={() => {
+    setModalFaisabiliteOpen(false);
+    saveStep(5);
+  }}
+  reloadFaisabilite={reloadResultatsFaisabilite} // ✅ AJOUT
 />
+
+
+
 
 
       </Container>

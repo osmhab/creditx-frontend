@@ -1,38 +1,96 @@
-.App {
-  text-align: center;
+
+:root {
+  --color-primary: #001BFF;
+  --color-secondary: #001BFF; /* remplacé l’ancien vert */
+  --color-error: #FF5A5F;
+  --color-text: #111111;
+  --color-text-secondary: #444444;
+  --color-background: #FFFFFF;
+  --border-radius: 8px;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+button {
+  background-color: var(--color-primary);
   color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out;
 }
 
-.App-link {
-  color: #61dafb;
+button:hover {
+  background-color: #0052cc;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+input, select, textarea {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.2);
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.text-muted {
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 16px 12px;
   }
-  to {
-    transform: rotate(360deg);
+
+  button {
+    width: 100%;
   }
+}
+
+
+/* Neutraliser les composants MUI qui utilisent success */
+.MuiCircularProgress-colorSuccess {
+  color: #0066FF !important;
+}
+
+.MuiButton-containedSuccess,
+.MuiButton-outlinedSuccess {
+  background-color: #0066FF !important;
+  color: white !important;
 }

@@ -1,22 +1,25 @@
 {
   "name": "creditzen-backend",
   "version": "1.0.0",
-  "type": "module", 
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
-  "test": "echo \"Error: no test specified\" && exit 1",
-  "dev": "nodemon index.js",
-  "start": "node index.js"
-},
-
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/vision": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "openai": "^4.90.0"
+    "multer": "^2.0.0",
+    "openai": "^4.90.0",
+    "pdf2pic": "^3.2.0",
+    "tmp": "^0.2.3"
   }
 }

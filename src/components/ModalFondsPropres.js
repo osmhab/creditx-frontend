@@ -13,35 +13,38 @@ import {
 import ChampMontantSimple from "./ChampMontantSimple";
 
 
-const ModalFondsPropres = ({ open, onClose, onSave, initialData }) => {
+const ModalFondsPropres = ({ open, onClose, onSave, initialData, personnes }) => {
   const [data, setData] = useState({
     montant: "",
     type: "",
     origine: "",
     institution: "",
     institutionAutre: "",
+    personneId: "",
   });
 
-  useEffect(() => {
-    
-    if (initialData) {
-      setData({
-        montant: initialData.montant ?? 0,
-        type: initialData.type || "",
-        origine: initialData.origine || "",
-        institution: initialData.institution || "",
-        institutionAutre: initialData.institutionAutre || "",
-      });
-    } else {
-      setData({
-        montant: 0,
-        type: "",
-        origine: "",
-        institution: "",
-        institutionAutre: "",
-      });
-    }
-  }, [initialData]);
+useEffect(() => {
+  if (initialData) {
+    setData({
+      montant: initialData.montant ?? 0,
+      type: initialData.type || "",
+      origine: initialData.origine || "",
+      institution: initialData.institution || "",
+      institutionAutre: initialData.institutionAutre || "",
+      personneId: initialData.personneId || "",
+    });
+  } else {
+    setData({
+      montant: 0,
+      type: "",
+      origine: "",
+      institution: "",
+      institutionAutre: "",
+      personneId: "",
+    });
+  }
+}, [initialData]);
+
 
   const typesOptions = ["Comptes / titres", "3e pilier", "2e pilier"];
   const banques = [
@@ -49,7 +52,8 @@ const ModalFondsPropres = ({ open, onClose, onSave, initialData }) => {
     "Credit Suisse (UBS)",
     "Raiffeisen",
     "Banque Cantonale Vaudoise (BCV)",
-    "Banque Cantonale du Valais",
+    "Banque Cantonale du Valais (BCVs)",
+    "Banque Cantonale de Genève (BCG)",
     "PostFinance",
     "Migros Bank",
     "Banque Cler",
@@ -64,6 +68,7 @@ const ModalFondsPropres = ({ open, onClose, onSave, initialData }) => {
     "Vaudoise",
     "Allianz",
     "Groupe Mutuel",
+    "La Mobilière",
     "Autre",
   ];
 
@@ -73,26 +78,49 @@ const ModalFondsPropres = ({ open, onClose, onSave, initialData }) => {
 
   const isValid =
   data.montant > 0 &&
+  
+
   data.type.trim() !== "" &&
   (!showOrigine || data.origine.trim() !== "") &&
   (!showInstitution || data.institution.trim() !== "") &&
-  (!isAutreInstitution || data.institutionAutre.trim() !== "");
+  (!isAutreInstitution || data.institutionAutre.trim() !== "") &&
+  data.personneId !== "";
+
 
 
   const handleSave = () => {
-    onSave({
-      montant: Number(data.montant),
-      type: data.type,
-      origine: data.type === "3e pilier" ? data.origine : null,
-      institution: data.institution,
-      institutionAutre: data.institution === "Autre" ? data.institutionAutre : null,
-    });
-  };
+  onSave({
+    montant: Number(data.montant),
+    type: data.type,
+    origine: data.type === "3e pilier" ? data.origine : null,
+    institution: data.institution,
+    institutionAutre: data.institution === "Autre" ? data.institutionAutre : null,
+    personneId: data.personneId,
+  });
+};
+
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Ajouter des fonds propres</DialogTitle>
       <DialogContent>
+
+      <TextField
+        label="Titulaire des fonds"
+        select
+        fullWidth
+        margin="normal"
+        value={data.personneId}
+        onChange={(e) => setData({ ...data, personneId: e.target.value })}
+      >
+        {personnes?.map((p, index) => (
+          <MenuItem key={index} value={p.id || index}>
+            {p.prenom} {p.nom}
+          </MenuItem>
+        ))}
+      </TextField>
+
+
       <ChampMontantSimple
         label="Montant"
         value={data.montant}

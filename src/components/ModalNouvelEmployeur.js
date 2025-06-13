@@ -126,7 +126,23 @@ const ModalNouvelEmployeur = ({ open, onClose, onSave, initialData }) => {
 
   return (
     <Modal open={open} onClose={(_, reason) => reason !== "backdropClick" && onClose()}>
-      <Box sx={{ width: 600, maxHeight: "90vh", overflowY: "auto", p: 4, borderRadius: 2, backgroundColor: "white", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+      <Box
+  sx={{
+    width: { xs: "95%", sm: "90%", md: 600 },     // ⬅️ responsive
+    maxWidth: "95vw",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    p: 4,
+    borderRadius: 2,
+    backgroundColor: "white",
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    boxShadow: 3,
+  }}
+>
+
         <Typography variant="h6" mb={2}>{initialData ? "Modifier l'employeur" : "Ajouter un employeur"}</Typography>
 
         {etape === 1 && (
@@ -147,12 +163,40 @@ const ModalNouvelEmployeur = ({ open, onClose, onSave, initialData }) => {
             </LocalizationProvider>
 
             <Typography fontWeight="bold" mb={1}>Taux d’activité (%)</Typography>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Box sx={{ width: 320 }}>
-                <Slider value={tauxActivite} onChange={(_, val) => setTauxActivite(val)} min={0} max={100} step={20} valueLabelDisplay="auto" marks={[20, 40, 60, 80, 100].map((v) => ({ value: v, label: `${v}%` }))} />
-              </Box>
-              <TextField type="number" value={tauxActivite} onChange={(e) => { const val = parseInt(e.target.value) || 0; if (val >= 0 && val <= 100) setTauxActivite(val); }} InputProps={{ endAdornment: <span style={{ marginLeft: 4 }}>%</span> }} sx={{ width: 100 }} />
-            </Box>
+            <Box
+  sx={{
+    display: "flex",
+    flexDirection: { xs: "column", sm: "row" },
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 2,
+  }}
+>
+  <Box sx={{ width: { xs: "100%", sm: 320 } }}>
+    <Slider
+      value={tauxActivite}
+      onChange={(_, val) => setTauxActivite(val)}
+      min={0}
+      max={100}
+      step={20}
+      valueLabelDisplay="auto"
+      marks={[20, 40, 60, 80, 100].map((v) => ({ value: v, label: `${v}%` }))}
+    />
+  </Box>
+  <TextField
+    type="number"
+    value={tauxActivite}
+    onChange={(e) => {
+      const val = parseInt(e.target.value) || 0;
+      if (val >= 0 && val <= 100) setTauxActivite(val);
+    }}
+    InputProps={{
+      endAdornment: <span style={{ marginLeft: 4 }}>%</span>,
+    }}
+    sx={{ width: 100 }}
+  />
+</Box>
+
 
             <Box mt={4} textAlign="right">
               <Button variant="outlined" onClick={onClose} sx={{ mr: 2 }}>Annuler</Button>
