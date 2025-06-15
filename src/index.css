@@ -1,3 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
 @font-face {
   font-family: 'SF Pro Text';
   src: url('./fonts/sf-pro/SFProText-Regular.otf') format('opentype');

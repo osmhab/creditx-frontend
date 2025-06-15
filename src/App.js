@@ -1,7 +1,7 @@
 // src/App.js
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import CreditSimulation from './CreditSimulation';
 import EstimationBien from './EstimationBien';
 import TestFirebase from "./TestFirebase";
@@ -13,29 +13,36 @@ import useUserRole from './hooks/useUserRole';
 import InscriptionBanque from './InscriptionBanque';
 import DossierDetails from './DossierDetails';
 import DemandesEnCours from './components/DemandesEnCours';
-
-
+import HomePage from './pages/HomePage';
 
 import Navbar from './components/Navbar';
 
 function App() {
   const { role, loading } = useUserRole();
   useCreateUserDossier();
+  const location = useLocation();
 
   return (
-    <Router>
-      <Navbar role={role} />
+    <>
+      {/* Masquer la Navbar sur la page d’accueil */}
+      {location.pathname !== '/' && <Navbar role={role} />}
 
       <Routes>
-        <Route path="/" element={<CreditSimulation />} />
+        {/* Page publique d'accueil */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* Fonctionnalités internes */}
+        {/* Tu peux commenter temporairement les routes ci-dessous si besoin */}
+        <Route path="/simulateur" element={<CreditSimulation />} />
         <Route path="/estimation" element={<EstimationBien />} />
         <Route path="/test-firebase" element={<TestFirebase />} />
         <Route path="/login" element={<Login />} />
         <Route path="/formulaire" element={<FormulaireDossier />} />
         <Route path="/inscription-banque" element={<InscriptionBanque />} />
         <Route path="/dossier/:id" element={<DossierDetails />} />
-        <Route path="/demandes" element={<DemandesEnCours />} /> {/* ✅ Nouvelle route */}
+        <Route path="/demandes" element={<DemandesEnCours />} />
 
+        {/* Dashboard banque */}
         {role === "banque" && (
           <Route path="/banque" element={<DashboardBanque />} />
         )}
@@ -43,7 +50,7 @@ function App() {
           <Route path="/banque" element={<p>⛔ Accès réservé à la banque</p>} />
         )}
       </Routes>
-    </Router>
+    </>
   );
 }
 

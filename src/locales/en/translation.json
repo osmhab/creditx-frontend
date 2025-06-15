@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "fonctionnement": "How it works",
+    "avantages": "Benefits",
+    "connexion": "Login",
+    "inscription": "Bank signup"
+  },
+  "hero": {
+    "title": "Get mortgage offers in 48 hours",
+    "subtitle": "Compare the best mortgage offers in Switzerland. Simple, fast and secure.",
+    "cta": "Start your application"
+  },
+  "fonctionnement": {
+    "title": "How does it work?",
+    "etapes": [
+      {
+        "titre": "1. Fill out your application",
+        "texte": "Complete our secure online form in less than 10 minutes.",
+        "emoji": "📝"
+      },
+      {
+        "titre": "2. Receive offers",
+        "texte": "We send your file to several partner banks.",
+        "emoji": "🏦"
+      },
+      {
+        "titre": "3. Compare transparently",
+        "texte": "View rates, conditions and payments in one place.",
+        "emoji": "📊"
+      },
+      {
+        "titre": "4. Sign online",
+        "texte": "Finalize your loan with secure electronic signature.",
+        "emoji": "✍️"
+      }
+    ]
+  },
+  "avantages": {
+    "title": "Why choose CreditX?",
+    "points": [
+      {
+        "titre": "Fast",
+        "texte": "Bank responses within 48 hours after complete file submission.",
+        "emoji": "⚡"
+      },
+      {
+        "titre": "Free",
+        "texte": "Our service is 100% free for you. No hidden fees.",
+        "emoji": "🆓"
+      },
+      {
+        "titre": "Secure",
+        "texte": "Your data is protected and hosted in Switzerland with banking standards.",
+        "emoji": "🔒"
+      },
+      {
+        "titre": "100% digital",
+        "texte": "From request to signature, everything is done online.",
+        "emoji": "📱"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Ready to compare the best offers?",
+    "subtitle": "Start your mortgage request online for free. Receive custom offers within 48h.",
+    "button": "Start now"
+  }
+}

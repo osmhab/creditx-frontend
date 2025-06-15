@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "fonctionnement": "Ablauf",
+    "avantages": "Vorteile",
+    "connexion": "Anmelden",
+    "inscription": "Bank registrieren"
+  },
+  "hero": {
+    "title": "Hypothekenangebote in 48 Stunden erhalten",
+    "subtitle": "Vergleichen Sie kostenlos die besten Hypothekenangebote in der Schweiz. Einfach, schnell und sicher.",
+    "cta": "Anfrage starten"
+  },
+  "fonctionnement": {
+    "title": "Wie funktioniert es?",
+    "etapes": [
+      {
+        "titre": "1. Formular ausfüllen",
+        "texte": "Füllen Sie unser sicheres Online-Formular in weniger als 10 Minuten aus.",
+        "emoji": "📝"
+      },
+      {
+        "titre": "2. Angebote erhalten",
+        "texte": "Wir senden Ihre Anfrage an mehrere Partnerbanken.",
+        "emoji": "🏦"
+      },
+      {
+        "titre": "3. Transparent vergleichen",
+        "texte": "Sehen Sie Zinssätze, Konditionen und Raten auf einen Blick.",
+        "emoji": "📊"
+      },
+      {
+        "titre": "4. Online unterschreiben",
+        "texte": "Schließen Sie Ihren Kredit mit einer sicheren elektronischen Unterschrift ab.",
+        "emoji": "✍️"
+      }
+    ]
+  },
+  "avantages": {
+    "title": "Warum CreditX wählen?",
+    "points": [
+      {
+        "titre": "Schnell",
+        "texte": "Banken antworten innerhalb von 48 Stunden nach vollständiger Antragstellung.",
+        "emoji": "⚡"
+      },
+      {
+        "titre": "Kostenlos",
+        "texte": "Unser Service ist 100 % kostenlos für Sie. Keine versteckten Gebühren.",
+        "emoji": "🆓"
+      },
+      {
+        "titre": "Sicher",
+        "texte": "Ihre Daten sind geschützt und in der Schweiz nach Bankenstandard gehostet.",
+        "emoji": "🔒"
+      },
+      {
+        "titre": "100% digital",
+        "texte": "Von der Anfrage bis zur Unterschrift läuft alles online.",
+        "emoji": "📱"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Bereit, die besten Angebote zu vergleichen?",
+    "subtitle": "Stellen Sie Ihre Hypothekenanfrage kostenlos online. Erhalten Sie maßgeschneiderte Angebote innerhalb von 48h.",
+    "button": "Jetzt starten"
+  }
+}

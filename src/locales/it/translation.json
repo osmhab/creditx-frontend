@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "fonctionnement": "Come funziona",
+    "avantages": "Vantaggi",
+    "connexion": "Accesso",
+    "inscription": "Registrazione banca"
+  },
+  "hero": {
+    "title": "Ricevi offerte ipotecarie in 48 ore",
+    "subtitle": "Confronta gratuitamente le migliori offerte di mutuo in Svizzera. Semplice, veloce e sicuro.",
+    "cta": "Inizia la tua richiesta"
+  },
+  "fonctionnement": {
+    "title": "Come funziona?",
+    "etapes": [
+      {
+        "titre": "1. Compila la tua richiesta",
+        "texte": "Completa il nostro modulo online sicuro in meno di 10 minuti.",
+        "emoji": "📝"
+      },
+      {
+        "titre": "2. Ricevi offerte",
+        "texte": "Invieremo il tuo dossier a diverse banche partner.",
+        "emoji": "🏦"
+      },
+      {
+        "titre": "3. Confronta in modo trasparente",
+        "texte": "Visualizza tassi, condizioni e rate tutto in un solo posto.",
+        "emoji": "📊"
+      },
+      {
+        "titre": "4. Firma online",
+        "texte": "Finalizza il mutuo con una firma elettronica sicura.",
+        "emoji": "✍️"
+      }
+    ]
+  },
+  "avantages": {
+    "title": "Perché scegliere CreditX?",
+    "points": [
+      {
+        "titre": "Veloce",
+        "texte": "Risposta dalle banche entro 48 ore dal completamento della richiesta.",
+        "emoji": "⚡"
+      },
+      {
+        "titre": "Gratuito",
+        "texte": "Il nostro servizio è completamente gratuito per te. Nessuna commissione nascosta.",
+        "emoji": "🆓"
+      },
+      {
+        "titre": "Sicuro",
+        "texte": "I tuoi dati sono protetti e ospitati in Svizzera con standard bancari.",
+        "emoji": "🔒"
+      },
+      {
+        "titre": "100% digitale",
+        "texte": "Dalla richiesta alla firma, tutto avviene online.",
+        "emoji": "📱"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Pronto a confrontare le migliori offerte?",
+    "subtitle": "Avvia ora la tua richiesta di mutuo online e ricevi offerte personalizzate entro 48 ore.",
+    "button": "Inizia ora"
+  }
+}

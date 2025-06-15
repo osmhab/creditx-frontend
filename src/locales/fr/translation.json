@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "fonctionnement": "Fonctionnement",
+    "avantages": "Avantages",
+    "connexion": "Connexion",
+    "inscription": "Inscription banque"
+  },
+  "hero": {
+    "title": "Obtenez des offres hypothécaires en 48h",
+    "subtitle": "Comparez gratuitement les meilleures offres de crédit immobilier en Suisse. Simple, rapide et sécurisé.",
+    "cta": "Commencer une demande"
+  },
+  "fonctionnement": {
+    "title": "Comment ça fonctionne ?",
+    "etapes": [
+      {
+        "titre": "1. Remplissez votre dossier",
+        "texte": "Complétez notre formulaire en ligne sécurisé en moins de 10 minutes.",
+        "emoji": "📝"
+      },
+      {
+        "titre": "2. Recevez des offres",
+        "texte": "Nous transmettons votre dossier à plusieurs banques partenaires.",
+        "emoji": "🏦"
+      },
+      {
+        "titre": "3. Comparez en toute transparence",
+        "texte": "Visualisez les taux, conditions et mensualités en un seul endroit.",
+        "emoji": "📊"
+      },
+      {
+        "titre": "4. Signez en ligne",
+        "texte": "Finalisez votre prêt avec une signature électronique sécurisée.",
+        "emoji": "✍️"
+      }
+    ]
+  },
+  "avantages": {
+    "title": "Pourquoi choisir CreditX ?",
+    "points": [
+      {
+        "titre": "Rapide",
+        "texte": "Réponse des banques en moins de 48 heures après dépôt du dossier complet.",
+        "emoji": "⚡"
+      },
+      {
+        "titre": "Gratuit",
+        "texte": "Notre service est 100 % gratuit pour vous. Aucune commission cachée.",
+        "emoji": "🆓"
+      },
+      {
+        "titre": "Sécurisé",
+        "texte": "Vos données sont protégées et hébergées en Suisse avec des standards bancaires.",
+        "emoji": "🔒"
+      },
+      {
+        "titre": "100% digital",
+        "texte": "De la demande à la signature, tout se fait en ligne depuis votre ordinateur ou smartphone.",
+        "emoji": "📱"
+      }
+    ]
+  },
+  "cta": {
+    "title": "Prêt à comparer les meilleures offres ?",
+    "subtitle": "Lancez votre demande de crédit hypothécaire gratuitement en ligne. Recevez des offres personnalisées sous 48h.",
+    "button": "Commencer une demande"
+  }
+}
