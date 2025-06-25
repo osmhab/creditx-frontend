@@ -6,7 +6,8 @@ import i18n from 'i18next';
 import heroBg from '../assets/hero-bg.jpg';
 import ResponsiveNavbar from '../components/ResponsiveNavbar';
 import SectionFonctionnementPremium from '../components/SectionFonctionnementPremium';
-import AvantagesParallaxSection from '../components/AvantagesParallaxSection';
+import SectionAvantages from '../components/SectionAvantages';
+
 
 import EtapeCard from "../components/EtapeCard";
 import { HiOutlineDocumentText, HiOutlineChartSquareBar, HiOutlinePencilAlt } from 'react-icons/hi';
@@ -64,7 +65,8 @@ const variants = {
 
     <SectionFonctionnementPremium />
 
-    <AvantagesParallaxSection />
+    <SectionAvantages />
+
 
       {/* Section CTA */}
       <section className="bg-blue-50 h-screen flex items-center px-4">
