@@ -45,7 +45,7 @@ const variants = {
         <div className="flex flex-col justify-center flex-1 px-8 md:px-24 max-w-3xl">
 
 
-          <h1 className="text-[52px] text-white md:text-[110px] font-extrabold uppercase leading-[1.05] mb-6 tracking-tight">
+          <h1 className="text-[35px] text-white md:text-[110px] font-extrabold uppercase leading-[1.05] mb-6 tracking-tight">
             L’HYPOTHÈQUE<br />INTELLIGENTE.
           </h1>
 
