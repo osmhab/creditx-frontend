@@ -1,6 +1,8 @@
+// src/components/SectionAvantages.js
 import React, { useRef, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { getAuth } from 'firebase/auth';
 import digitalIllustration from '../assets/illustration-digital.svg';
 import banquesIllustration from '../assets/illustration-banques.svg';
 import transparenceIllustration from '../assets/illustration-transparence.svg';
@@ -36,8 +38,15 @@ const fadeUp = {
 };
 
 const SectionAvantages = () => {
+  const navigate = useNavigate();
   const sectionRefs = useRef([]);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleCTA = () => {
+  const user = getAuth().currentUser;
+  navigate(user ? "/dashboard" : "/login-client");
+};
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -69,50 +78,43 @@ const SectionAvantages = () => {
         ))}
       </div>
 
-      ...
-{slides.map((slide, i) => {
-  const bg = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+      {slides.map((slide, i) => (
+        <section
+          key={i}
+          ref={(el) => (sectionRefs.current[i] = el)}
+          className={`bg-gray-50 h-screen w-full flex items-center justify-center px-6 md:px-12 border-y border-gray-200 shadow-inner`}
+        >
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.6 }}
+            custom={i}
+            className="max-w-6xl w-full flex flex-col-reverse md:flex-row items-center md:items-start gap-8 md:gap-12"
+          >
+            {/* Texte (mobile = en bas / desktop = à gauche) */}
+            <div className="text-center md:text-left flex flex-col justify-center items-center md:items-start gap-6 max-w-xl">
+              <h2 className="text-3xl md:text-5xl font-bold text-black">
+                {slide.title}
+              </h2>
+              <p className="text-gray-700 text-base md:text-lg">{slide.text}</p>
+              <button
+                onClick={handleCTA}
+                className="px-8 py-3 rounded-full text-base font-semibold text-white bg-black hover:bg-gray-900 transition"
+              >
+                Commencez maintenant
+              </button>
+            </div>
 
-  return (
-    <section
-      key={i}
-      ref={(el) => (sectionRefs.current[i] = el)}
-      className={`${bg} h-screen w-full flex items-center justify-center px-6 md:px-12`}
-    >
-      <motion.div
-  variants={fadeUp}
-  initial="hidden"
-  whileInView="visible"
-  viewport={{ once: true, amount: 0.6 }}
-  custom={i}
-  className="max-w-6xl w-full flex flex-col-reverse md:flex-row items-center md:items-start gap-8 md:gap-12"
->
-  {/* Texte (mobile = en bas / desktop = à gauche) */}
-  <div className="text-center md:text-left flex flex-col justify-center items-center md:items-start gap-6 max-w-xl">
-    <h2 className="text-3xl md:text-5xl font-bold text-black">
-      {slide.title}
-    </h2>
-    <p className="text-gray-700 text-base md:text-lg">{slide.text}</p>
-    <Link
-      to="/formulaire"
-      className="px-8 py-3 rounded-full text-base font-semibold text-white bg-black hover:bg-gray-900 transition"
-    >
-      Commencez maintenant
-    </Link>
-  </div>
-
-  {/* Image (mobile = en haut / desktop = à droite) */}
-  <img
-    src={slide.image}
-    alt={slide.title}
-    className="w-40 h-40 md:w-[450px] md:h-auto object-contain"
-  />
-</motion.div>
-
-    </section>
-  );
-})}
-
+            {/* Image (mobile = en haut / desktop = à droite) */}
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="w-40 h-40 md:w-[450px] md:h-auto object-contain"
+            />
+          </motion.div>
+        </section>
+      ))}
     </div>
   );
 };
