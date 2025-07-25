@@ -18,6 +18,10 @@ import DashboardBanque from './DashboardBanque';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import DashboardClient from "./pages/DashboardClient";
+import NouvelleDemande from './pages/NouvelleDemande';
+import DemandesClient from './pages/DemandesClient';
+
+
 
 
 import useCreateUserDossier from './hooks/useCreateUserDossier';
@@ -43,6 +47,17 @@ function App() {
         <Route path="/inscription-banque" element={<InscriptionBanque />} />
         <Route path="/dossier/:id" element={<DossierDetails />} />
         <Route path="/demandes" element={<DemandesEnCours />} />
+        <Route path="/demandes-client" element={<DemandesClient />} />
+
+
+        <Route
+            path="/nouvelle-demande"
+            element={
+              <ProtectedRoute role="client">
+                <NouvelleDemande />
+              </ProtectedRoute>
+            }
+          />
 
         <Route
           path="/formulaire"
