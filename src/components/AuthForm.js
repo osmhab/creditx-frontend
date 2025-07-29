@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-
-
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -9,13 +7,13 @@ import {
   sendPasswordResetEmail,
   signOut,
 } from "firebase/auth";
-import LogoCreditXWhite from "../assets/logo-creditx-white.svg";
-import LogoCreditXGrey from "../assets/logo-creditx-grey.svg";
-
 import { auth, db } from "../firebase-config";
-import { useNavigate } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
+import LogoCreditXWhite from "../assets/logo-creditx-white.svg";
+import LogoCreditXGrey from "../assets/logo-creditx-grey.svg";
+import { getFunctions, httpsCallable } from "firebase/functions";
+
 
 function AuthForm({ title, role, redirectTo }) {
   const [email, setEmail] = useState("");
@@ -27,18 +25,20 @@ function AuthForm({ title, role, redirectTo }) {
   const [successMsg, setSuccessMsg] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailToConfirm, setEmailToConfirm] = useState("");
+
 
   const { user } = useAuth();
   const navigate = useNavigate();
-const location = useLocation(); // 👈 ici
+  const location = useLocation();
 
-
-    // ✅ Redirection si déjà connecté
-  // Redirection si déjà connecté uniquement si on est sur /auth ou /login
 useEffect(() => {
   if (!user) return;
 
-  const authPaths = ["/login-client", "/auth", "/login"]; // adapte selon tes routes
+  // Ne rien faire si l'email n'est pas vérifié
+  if (!user.emailVerified) return;
+
+  const authPaths = ["/login-client", "/auth", "/login"];
   if (!authPaths.includes(location.pathname)) return;
 
   const check = async () => {
@@ -54,7 +54,6 @@ useEffect(() => {
 
   check();
 }, [user, navigate, location.pathname]);
-
 
 
   const handleSubmit = async (e) => {
@@ -87,10 +86,10 @@ useEffect(() => {
           createdAt: new Date(),
         });
 
-        await sendEmailVerification(userCredential.user);
+        await signOut(auth);
 
+        setEmailToConfirm(email);
         setVerificationSent(true);
-        setSuccessMsg("Un e-mail de vérification a été envoyé. Vérifiez votre boîte mail.");
         setEmail("");
         setPassword("");
         setConfirmPassword("");
@@ -121,49 +120,42 @@ useEffect(() => {
   };
 
   const handleResendVerification = async () => {
-    setErrorMsg("");
-    setSuccessMsg("");
+  setErrorMsg("");
+  setSuccessMsg("");
 
-    try {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        await sendEmailVerification(currentUser);
-        setSuccessMsg("E-mail de vérification renvoyé avec succès.");
-      } else {
-        throw new Error("Utilisateur non connecté.");
-      }
-    } catch (error) {
-      setErrorMsg(error.message);
-    }
-  };
+  try {
+    const functions = getFunctions();
+    const resend = httpsCallable(functions, "resendVerificationEmail");
+    await resend({ email: emailToConfirm });
+
+    setSuccessMsg("E-mail de vérification renvoyé avec succès.");
+  } catch (error) {
+    setErrorMsg("Erreur lors de l’envoi de l’e-mail. Réessayez plus tard.");
+  }
+};
+
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Contenu principal */}
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Colonne gauche branding */}
         <div className="hidden md:flex md:w-1/2 bg-black text-white items-center justify-center p-12">
           <div className="max-w-md text-left space-y-6">
             <img
-            src={LogoCreditXWhite}
-            alt="CreditX"
-            className="h-16 w-auto cursor-pointer"
-            onClick={() => navigate("/")}
+              src={LogoCreditXWhite}
+              alt="CreditX"
+              className="h-16 w-auto cursor-pointer"
+              onClick={() => navigate("/")}
             />
-
             <p className="text-lg font-medium">L’hypothèque intelligente.</p>
           </div>
         </div>
 
-        {/* Colonne droite formulaire + footer */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center bg-white px-6 py-12">
           <div className="w-full max-w-md">
             <div
               className="mb-4 md:hidden text-center cursor-pointer"
               onClick={() => navigate("/")}
-            >
-              
-            </div>
+            ></div>
 
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-gray-900">
@@ -176,26 +168,42 @@ useEffect(() => {
             </div>
 
             {verificationSent ? (
-              <div className="text-center space-y-4">
-                <p className="text-base text-green-600 font-medium">
-                  Un e-mail de vérification a été envoyé. Vérifiez votre boîte mail.
-                </p>
-                <button
-                  onClick={handleResendVerification}
-                  className="text-blue-600 underline text-base"
-                >
-                  Renvoyer l’e-mail
-                </button>
-                <button
-                  onClick={() => {
-                    setIsRegister(false);
-                    setVerificationSent(false);
-                  }}
-                  className="text-base text-gray-600 mt-4 underline"
-                >
-                  Retour à la connexion
-                </button>
-              </div>
+  <div className="text-center space-y-6">
+    <h3 className="text-2xl font-bold text-gray-900">
+      🎉 Presque terminé !
+    </h3>
+    <p className="text-base text-gray-700">
+      Un e-mail de confirmation a été envoyé à <br />
+      <span className="font-medium text-blue-600 break-words">{emailToConfirm}</span>
+
+    </p>
+    <p className="text-sm text-gray-500">
+      Cliquez sur le lien dans votre boîte mail pour activer votre compte,
+      puis revenez ici pour vous connecter.<br></br>
+      <span className="text-creditxblue font-medium">
+        Vérifiez aussi votre dossier spam </span>
+        si vous ne trouvez pas l'email.
+    </p>
+
+    <div className="space-y-3">
+      <button
+        onClick={handleResendVerification}
+        className="w-full bg-black text-white py-3 px-6 rounded-full text-base font-semibold hover:bg-gray-900 transition"
+      >
+        Renvoyer l’e-mail
+      </button>
+
+      <button
+        onClick={() => {
+          setIsRegister(false);
+          setVerificationSent(false);
+        }}
+        className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full text-base font-medium hover:bg-gray-50 transition"
+      >
+        Retour à la connexion
+      </button>
+    </div>
+  </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <input
@@ -294,30 +302,28 @@ useEffect(() => {
             )}
           </div>
 
-          {/* ✅ Footer local à cette colonne */}
-         <footer className="mt-12 text-center text-sm text-gray-400 w-full">
-  <img
-    src={LogoCreditXGrey}
-    alt="CreditX"
-    className="h-10 cursor-pointer mx-auto mb-3"
-    onClick={() => navigate("/")}
-  />
-  <div className="flex justify-center gap-4 text-xs mb-1">
-    <button onClick={() => navigate("/")} className="hover:underline">
-      Accueil
-    </button>
-    <button
-      onClick={() => navigate("/mentions-legales")}
-      className="hover:underline"
-    >
-      Mentions légales
-    </button>
-  </div>
-  <p className="text-[11px]">
-    &copy; {new Date().getFullYear()} CreditX. Tous droits réservés.
-  </p>
-</footer>
-
+          <footer className="mt-12 text-center text-sm text-gray-400 w-full">
+            <img
+              src={LogoCreditXGrey}
+              alt="CreditX"
+              className="h-10 cursor-pointer mx-auto mb-3"
+              onClick={() => navigate("/")}
+            />
+            <div className="flex justify-center gap-4 text-xs mb-1">
+              <button onClick={() => navigate("/")} className="hover:underline">
+                Accueil
+              </button>
+              <button
+                onClick={() => navigate("/mentions-legales")}
+                className="hover:underline"
+              >
+                Mentions légales
+              </button>
+            </div>
+            <p className="text-[11px]">
+              &copy; {new Date().getFullYear()} CreditX. Tous droits réservés.
+            </p>
+          </footer>
         </div>
       </div>
     </div>

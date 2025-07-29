@@ -19,7 +19,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import DashboardClient from "./pages/DashboardClient";
 import NouvelleDemande from './pages/NouvelleDemande';
-import DemandesClient from './pages/DemandesClient';
+import TypeDemande from './pages/TypeDemande';
+import InformationsPersonnelles from "./pages/DossierInformationsPersonnelles/InformationsPersonnelles";
+import InformationsPrenom from "./pages/DossierInformationsPersonnelles/InformationsPrenom";
+
+
 
 
 
@@ -47,7 +51,10 @@ function App() {
         <Route path="/inscription-banque" element={<InscriptionBanque />} />
         <Route path="/dossier/:id" element={<DossierDetails />} />
         <Route path="/demandes" element={<DemandesEnCours />} />
-        <Route path="/demandes-client" element={<DemandesClient />} />
+        <Route path="/type-demande" element={<TypeDemande />} />
+        <Route path="/informations" element={<InformationsPersonnelles />} />
+        <Route path="/informations/prenom" element={<InformationsPrenom />} />
+
 
 
         <Route

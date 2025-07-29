@@ -1,0 +1,16 @@
+[debug] [2025-07-28T12:57:23.422Z] ----------------------------------------------------------------------
+[debug] [2025-07-28T12:57:23.423Z] Command:       /Users/Habib/.nvm/versions/node/v20.19.2/bin/node /Users/Habib/.npm-global/bin/firebase deploy --only functions
+[debug] [2025-07-28T12:57:23.423Z] CLI Version:   14.7.0
+[debug] [2025-07-28T12:57:23.423Z] Platform:      darwin
+[debug] [2025-07-28T12:57:23.423Z] Node Version:  v20.19.2
+[debug] [2025-07-28T12:57:23.423Z] Time:          Mon Jul 28 2025 14:57:23 GMT+0200 (heure d’été d’Europe centrale)
+[debug] [2025-07-28T12:57:23.423Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-28T12:57:23.493Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-28T12:57:23.493Z] > authorizing via signed-in user (osmhab@gmail.com)
+[debug] [2025-07-28T12:57:23.493Z] [iam] checking project creditx-f3f28 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2025-07-28T12:57:23.493Z] Checked if tokens are valid: true, expires at: 1753710152612
+[debug] [2025-07-28T12:57:23.493Z] Checked if tokens are valid: true, expires at: 1753710152612
+[debug] [2025-07-28T12:57:23.494Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/creditx-f3f28:testIamPermissions [none]
+[debug] [2025-07-28T12:57:23.494Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/creditx-f3f28:testIamPermissions x-goog-quota-user=projects/creditx-f3f28
+[debug] [2025-07-28T12:57:23.494Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/creditx-f3f28:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
