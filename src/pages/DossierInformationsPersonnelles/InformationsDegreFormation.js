@@ -3,24 +3,33 @@ import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
 
-export default function InformationsPrenom() {
+export default function InformationsDegreFormation() {
   const navigate = useNavigate();
-  const { personneId, id } = useParams(); // 👈 récupère l'index
+  const { personneId, id } = useParams();
   const index = parseInt(personneId);
 
-  const [prenom, setPrenom] = useState("");
+  const [formation, setFormation] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const options = [
+    "Aucune formation achevée",
+    "Formation obligatoire",
+    "Formation professionnelle (CFC, AFP)",
+    "Maturité ou diplôme de culture générale",
+    "Formation tertiaire (HES, université, etc.)",
+    "Autre",
+  ];
+
   useEffect(() => {
-    const fetch = async () => {
+    const fetchFormation = async () => {
       const snap = await getDoc(doc(db, "demandes", id));
       if (snap.exists()) {
         const data = snap.data();
         const personne = data.personnes?.[index];
-        if (personne?.prenom) setPrenom(personne.prenom);
+        if (personne?.formation) setFormation(personne.formation);
       }
     };
-    fetch();
+    fetchFormation();
   }, [id, index]);
 
   const handleSave = async () => {
@@ -30,12 +39,11 @@ export default function InformationsPrenom() {
       const snap = await getDoc(ref);
       const data = snap.data();
       const personnes = [...(data.personnes || [])];
-      personnes[index] = { ...personnes[index], prenom }; // 👈 mise à jour
-
+      personnes[index] = { ...personnes[index], formation };
       await updateDoc(ref, { personnes });
       navigate(`/informations/${index}/${id}`);
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("Erreur lors de la mise à jour du degré de formation :", error);
     } finally {
       setLoading(false);
     }
@@ -48,24 +56,34 @@ export default function InformationsPrenom() {
           <span className="text-xl">←</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-2">Prénom</h1>
+        <h1 className="text-2xl font-bold mb-2">Degré de formation</h1>
         <p className="text-sm text-gray-500 mb-6">
-          Veuillez inscrire votre prénom tel que mentionné sur votre carte d’identité officielle
+          Veuillez sélectionner votre formation la plus élevée
         </p>
 
-        <input
-          type="text"
-          placeholder="Prénom"
-          value={prenom}
-          onChange={(e) => setPrenom(e.target.value)}
-          className="w-full p-4 bg-gray-100 rounded-xl mb-8 text-sm"
-        />
+        <div className="flex flex-col gap-3 mb-8">
+          {options.map((option) => (
+            <button
+              key={option}
+              onClick={() => setFormation(option)}
+              className={`w-full py-3 rounded-xl text-sm border ${
+                formation === option
+                  ? "bg-black text-white"
+                  : "bg-white text-black border-gray-300"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
 
         <button
           onClick={handleSave}
-          disabled={!prenom || loading}
+          disabled={!formation || loading}
           className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            prenom ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            formation
+              ? "bg-black text-white hover:bg-gray-900"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }`}
         >
           {loading ? "Enregistrement..." : "Continuer"}

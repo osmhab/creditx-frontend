@@ -43,14 +43,16 @@ const Footer = () => {
         {/* Colonne 3 : Contact */}
         <div>
           <h4 className="font-semibold text-black mb-2">Contact</h4>
-          <p>Email : <a href="mailto:contact@creditx.ch" className="hover:underline">contact@creditx.ch</a></p>
-          <p>Tél : +41 79 123 45 67</p>
-          <p>Valais, Suisse</p>
+          <p>CreditX Sàrl</p>
+          <p>Avenue de la Gare 54</p>
+          <p>CH - 1964 Conthey</p>
+          <p>Email : <a href="mailto:info@creditx.ch" className="hover:underline">info@creditx.ch</a></p>
+          
         </div>
       </div>
 
       <div className="border-t border-gray-200 py-4 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} CreditX. Tous droits réservés.
+        © {new Date().getFullYear()} CreditX Sàrl. Tous droits réservés.
       </div>
     </footer>
   );

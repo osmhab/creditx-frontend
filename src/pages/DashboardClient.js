@@ -21,6 +21,9 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import HelpIcon from "@mui/icons-material/Help";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ModalMessage from "../components/ModalMessage";
+
+
 
 export default function DashboardClient() {
   const { user, logout } = useAuth();
@@ -30,6 +33,11 @@ export default function DashboardClient() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [ongletActif, setOngletActif] = useState("accueil");
+  const [modalInfo, setModalInfo] = useState({
+  open: false,
+  message: "",
+});
+
 
   useEffect(() => {
     if (!user || !user.uid) return;
@@ -382,12 +390,30 @@ return (
     key={key}
     className="bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
     onClick={() => {
+  const id = demandes[0]?.id;
+
   if (key === "typeDemande") {
     navigate("/type-demande");
   } else if (key === "etatInfos") {
-    navigate("/informations");
+    navigate(`/informations-personnelles?id=${id}`);
+  } else if (["etatIdentite", "etatDocuments", "etatResume"].includes(key)) {
+    let message = "";
+    if (key === "etatIdentite") {
+      message = "Veuillez d’abord compléter les étapes précédentes avant d'accéder à l'authentification d’identité.";
+    } else if (key === "etatDocuments") {
+      message = "Vous devez remplir les informations personnelles et du bien avant d’accéder aux pièces jointes.";
+    } else if (key === "etatResume") {
+      message = "Le résumé et l’acceptation ne sont disponibles qu’après avoir rempli toutes les sections.";
+    }
+
+    setModalInfo({
+      open: true,
+      message,
+    });
   }
 }}
+
+
 
   >
     <div>
@@ -453,6 +479,20 @@ return (
             )}
           </div>
         )}
+
+<ModalMessage
+  open={modalInfo.open}
+  onClose={() => setModalInfo({ open: false, message: "" })}
+  onConfirm={() => setModalInfo({ open: false, message: "" })}
+  title="Section non disponible"
+  message={modalInfo.message}
+  confirmText="J’ai compris"
+  onlyConfirm
+  showCloseIcon
+/>
+
+
+
       </main>
     </div>
   );

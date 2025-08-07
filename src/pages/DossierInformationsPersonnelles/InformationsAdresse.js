@@ -3,24 +3,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
 
-export default function InformationsPrenom() {
+export default function InformationsAdresse() {
   const navigate = useNavigate();
-  const { personneId, id } = useParams(); // 👈 récupère l'index
+  const { personneId, id } = useParams();
   const index = parseInt(personneId);
 
-  const [prenom, setPrenom] = useState("");
+  const [adresse, setAdresse] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchAdresse = async () => {
       const snap = await getDoc(doc(db, "demandes", id));
       if (snap.exists()) {
         const data = snap.data();
         const personne = data.personnes?.[index];
-        if (personne?.prenom) setPrenom(personne.prenom);
+        if (personne?.adresse) setAdresse(personne.adresse);
       }
     };
-    fetch();
+    fetchAdresse();
   }, [id, index]);
 
   const handleSave = async () => {
@@ -30,12 +30,11 @@ export default function InformationsPrenom() {
       const snap = await getDoc(ref);
       const data = snap.data();
       const personnes = [...(data.personnes || [])];
-      personnes[index] = { ...personnes[index], prenom }; // 👈 mise à jour
-
+      personnes[index] = { ...personnes[index], adresse };
       await updateDoc(ref, { personnes });
       navigate(`/informations/${index}/${id}`);
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("Erreur lors de la mise à jour de l'adresse :", error);
     } finally {
       setLoading(false);
     }
@@ -48,24 +47,24 @@ export default function InformationsPrenom() {
           <span className="text-xl">←</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-2">Prénom</h1>
+        <h1 className="text-2xl font-bold mb-2">Adresse</h1>
         <p className="text-sm text-gray-500 mb-6">
-          Veuillez inscrire votre prénom tel que mentionné sur votre carte d’identité officielle
+          Merci d’indiquer votre adresse complète actuelle
         </p>
 
         <input
           type="text"
-          placeholder="Prénom"
-          value={prenom}
-          onChange={(e) => setPrenom(e.target.value)}
+          placeholder="Rue et numéro"
+          value={adresse}
+          onChange={(e) => setAdresse(e.target.value)}
           className="w-full p-4 bg-gray-100 rounded-xl mb-8 text-sm"
         />
 
         <button
           onClick={handleSave}
-          disabled={!prenom || loading}
+          disabled={!adresse || loading}
           className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            prenom ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            adresse ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }`}
         >
           {loading ? "Enregistrement..." : "Continuer"}

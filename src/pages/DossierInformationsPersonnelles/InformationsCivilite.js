@@ -3,24 +3,26 @@ import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
 
-export default function InformationsPrenom() {
+export default function InformationsCivilite() {
   const navigate = useNavigate();
-  const { personneId, id } = useParams(); // 👈 récupère l'index
+  const { personneId, id } = useParams();
   const index = parseInt(personneId);
 
-  const [prenom, setPrenom] = useState("");
+  const [civilite, setCivilite] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const options = ["Monsieur", "Madame"];
+
   useEffect(() => {
-    const fetch = async () => {
+    const fetchCivilite = async () => {
       const snap = await getDoc(doc(db, "demandes", id));
       if (snap.exists()) {
         const data = snap.data();
         const personne = data.personnes?.[index];
-        if (personne?.prenom) setPrenom(personne.prenom);
+        if (personne?.civilite) setCivilite(personne.civilite);
       }
     };
-    fetch();
+    fetchCivilite();
   }, [id, index]);
 
   const handleSave = async () => {
@@ -30,12 +32,11 @@ export default function InformationsPrenom() {
       const snap = await getDoc(ref);
       const data = snap.data();
       const personnes = [...(data.personnes || [])];
-      personnes[index] = { ...personnes[index], prenom }; // 👈 mise à jour
-
+      personnes[index] = { ...personnes[index], civilite };
       await updateDoc(ref, { personnes });
       navigate(`/informations/${index}/${id}`);
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("Erreur lors de la mise à jour de la civilité :", error);
     } finally {
       setLoading(false);
     }
@@ -48,24 +49,32 @@ export default function InformationsPrenom() {
           <span className="text-xl">←</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-2">Prénom</h1>
+        <h1 className="text-2xl font-bold mb-2">Civilité</h1>
         <p className="text-sm text-gray-500 mb-6">
-          Veuillez inscrire votre prénom tel que mentionné sur votre carte d’identité officielle
+          Merci de sélectionner la civilité correspondant à votre pièce d’identité officielle
         </p>
 
-        <input
-          type="text"
-          placeholder="Prénom"
-          value={prenom}
-          onChange={(e) => setPrenom(e.target.value)}
-          className="w-full p-4 bg-gray-100 rounded-xl mb-8 text-sm"
-        />
+        <div className="space-y-4 mb-8">
+          {options.map((opt) => (
+            <div
+              key={opt}
+              onClick={() => setCivilite(opt)}
+              className={`w-full px-4 py-3 rounded-xl border cursor-pointer text-sm font-medium transition ${
+                civilite === opt
+                  ? "border-black bg-black text-white"
+                  : "border-gray-200 bg-white text-black hover:bg-gray-50"
+              }`}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
 
         <button
           onClick={handleSave}
-          disabled={!prenom || loading}
+          disabled={!civilite || loading}
           className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            prenom ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            civilite ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }`}
         >
           {loading ? "Enregistrement..." : "Continuer"}
