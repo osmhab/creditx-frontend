@@ -111,3 +111,72 @@ exports.resendVerificationEmail = functions.https.onCall(async (data, context) =
     throw new functions.https.HttpsError("internal", "Erreur lors de l’envoi de l’e-mail.");
   }
 });
+
+
+//Envoi message depuis formulaire de contact
+exports.sendContactEmail = functions.https.onCall(async (data, context) => {
+  const fromEmail = (data.fromEmail || data.email || "").trim();
+  const message = (data.message || "").toString();
+
+  if (!fromEmail || !message) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "L'adresse e-mail et le message sont requis."
+    );
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(fromEmail)) {
+    throw new functions.https.HttpsError("invalid-argument", "Adresse e-mail invalide.");
+  }
+
+  if (message.trim().length < 10) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Le message doit contenir au moins 10 caractères."
+    );
+  }
+
+  const smtpUser = functions.config().smtp.user;
+  const smtpPass = functions.config().smtp.pass;
+
+  const transporter = nodemailer.createTransport({
+    host: "mail.infomaniak.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  const mailOptions = {
+    from: `"CreditX – Formulaire de contact" <noreply@creditx.ch>`,
+    to: "info@creditx.ch",
+    replyTo: fromEmail,
+    subject: "📩 Nouveau message via le formulaire de contact",
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;">
+        <h2 style="color:#001BFF;">Nouveau message reçu</h2>
+        <p><strong>De :</strong> ${fromEmail}</p>
+        <p><strong>Message :</strong></p>
+        <p style="white-space:pre-wrap;">${message}</p>
+        <hr/>
+        <p style="font-size:12px;color:gray;">Envoyé depuis le formulaire de contact du site CreditX</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Message du formulaire envoyé depuis ${fromEmail}`);
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Erreur lors de l'envoi du message :", error);
+    throw new functions.https.HttpsError(
+      "internal",
+      "Impossible d'envoyer le message pour le moment."
+    );
+  }
+});
+

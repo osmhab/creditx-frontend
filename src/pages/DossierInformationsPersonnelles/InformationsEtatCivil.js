@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
+import SelecteurCreditX from "../../components/SelecteurCreditX";
+
+
 
 export default function InformationsEtatCivil() {
   const navigate = useNavigate();
@@ -11,7 +14,7 @@ export default function InformationsEtatCivil() {
   const [etatCivil, setEtatCivil] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const options = ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"];
+  const options = ["Célibataire", "Marié(e)", "Partenariat enregistré", "Divorcé(e)", "Veuf(ve)"];
 
   useEffect(() => {
     const fetchEtatCivil = async () => {
@@ -54,33 +57,27 @@ export default function InformationsEtatCivil() {
           Merci de sélectionner votre état civil actuel
         </p>
 
-        <div className="flex flex-col gap-3 mb-8">
-          {options.map((option) => (
-            <button
-              key={option}
-              onClick={() => setEtatCivil(option)}
-              className={`w-full py-3 rounded-xl text-sm border ${
-                etatCivil === option
-                  ? "bg-black text-white"
-                  : "bg-white text-black border-gray-300"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
+        <SelecteurCreditX
+  label="État civil"
+  value={etatCivil || null}
+  onChange={setEtatCivil}
+  options={options}
+  placeholder="Sélectionner un état civil"
+  required
+  searchable={false}
+/>
 
-        <button
-          onClick={handleSave}
-          disabled={!etatCivil || loading}
-          className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            etatCivil
-              ? "bg-black text-white hover:bg-gray-900"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {loading ? "Enregistrement..." : "Continuer"}
-        </button>
+<br></br>
+
+<button
+  onClick={handleSave}
+  disabled={!etatCivil || loading}
+  className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
+    etatCivil ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+  }`}
+>
+  {loading ? "Enregistrement..." : "Continuer"}
+</button>
       </div>
     </div>
   );

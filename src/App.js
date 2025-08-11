@@ -5,6 +5,8 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 
 import HomeRedirect from './pages/HomeRedirect';
 import MentionsLegales from './pages/MentionsLegales';
+import ContactFormPage from "./pages/contactform";
+
 import CreditSimulation from './CreditSimulation';
 import EstimationBien from './EstimationBien';
 import TestFirebase from './TestFirebase';
@@ -41,6 +43,7 @@ import InformationsRelation from "./pages/DossierInformationsPersonnelles/Inform
 
 
 
+
 import useCreateUserDossier from './hooks/useCreateUserDossier';
 import useUserRole from './hooks/useUserRole';
 
@@ -56,6 +59,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
 <Route path="/mentions-legales" element={<MentionsLegales />} />
+<Route path="/contactform" element={<ContactFormPage />} />
 <Route path="/simulateur" element={<CreditSimulation />} />
 <Route path="/estimation" element={<EstimationBien />} />
 <Route path="/test-firebase" element={<TestFirebase />} />

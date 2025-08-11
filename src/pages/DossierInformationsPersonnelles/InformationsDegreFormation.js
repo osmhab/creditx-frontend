@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
+import SelecteurCreditX from "../../components/SelecteurCreditX";
+
+
 
 export default function InformationsDegreFormation() {
   const navigate = useNavigate();
@@ -17,7 +20,6 @@ export default function InformationsDegreFormation() {
     "Formation professionnelle (CFC, AFP)",
     "Maturité ou diplôme de culture générale",
     "Formation tertiaire (HES, université, etc.)",
-    "Autre",
   ];
 
   useEffect(() => {
@@ -61,33 +63,26 @@ export default function InformationsDegreFormation() {
           Veuillez sélectionner votre formation la plus élevée
         </p>
 
-        <div className="flex flex-col gap-3 mb-8">
-          {options.map((option) => (
-            <button
-              key={option}
-              onClick={() => setFormation(option)}
-              className={`w-full py-3 rounded-xl text-sm border ${
-                formation === option
-                  ? "bg-black text-white"
-                  : "bg-white text-black border-gray-300"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
+        <SelecteurCreditX
+  label="Degré de formation"
+  value={formation || null}
+  onChange={setFormation}
+  options={options}
+  placeholder="Sélectionner un degré de formation"
+  searchable={false}
+/>
 
-        <button
-          onClick={handleSave}
-          disabled={!formation || loading}
-          className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            formation
-              ? "bg-black text-white hover:bg-gray-900"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {loading ? "Enregistrement..." : "Continuer"}
-        </button>
+<br></br>
+
+<button
+  onClick={handleSave}
+  disabled={!formation || loading}
+  className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
+    formation ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+  }`}
+>
+  {loading ? "Enregistrement..." : "Continuer"}
+</button>
       </div>
     </div>
   );

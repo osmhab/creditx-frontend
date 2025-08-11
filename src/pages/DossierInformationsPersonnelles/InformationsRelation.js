@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
+import SelecteurCreditX from "../../components/SelecteurCreditX";
 
 export default function InformationsRelation() {
   const navigate = useNavigate();
@@ -67,21 +68,17 @@ export default function InformationsRelation() {
           Merci d’indiquer le lien entre vous et le demandeur principal
         </p>
 
-        <div className="space-y-4 mb-8">
-          {options.map((opt) => (
-            <div
-              key={opt}
-              onClick={() => setRelation(opt)}
-              className={`w-full px-4 py-3 rounded-xl border cursor-pointer text-sm font-medium transition ${
-                relation === opt
-                  ? "border-black bg-black text-white"
-                  : "border-gray-200 bg-white text-black hover:bg-gray-50"
-              }`}
-            >
-              {opt}
-            </div>
-          ))}
-        </div>
+        <SelecteurCreditX
+          label="Lien"
+          value={relation || null}
+          onChange={(v) => setRelation(v || "")}
+          options={options}
+          placeholder="Sélectionner un lien"
+          searchable={false}
+          required
+        />
+
+        <br></br>
 
         <button
           onClick={handleSave}

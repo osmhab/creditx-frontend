@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
+import SelecteurCreditX from "../../components/SelecteurCreditX";
 
 export default function InformationsCivilite() {
   const navigate = useNavigate();
@@ -49,36 +50,34 @@ export default function InformationsCivilite() {
           <span className="text-xl">←</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-2">Civilité</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Merci de sélectionner la civilité correspondant à votre pièce d’identité officielle
-        </p>
 
-        <div className="space-y-4 mb-8">
-          {options.map((opt) => (
-            <div
-              key={opt}
-              onClick={() => setCivilite(opt)}
-              className={`w-full px-4 py-3 rounded-xl border cursor-pointer text-sm font-medium transition ${
-                civilite === opt
-                  ? "border-black bg-black text-white"
-                  : "border-gray-200 bg-white text-black hover:bg-gray-50"
-              }`}
-            >
-              {opt}
-            </div>
-          ))}
-        </div>
+<h1 className="text-2xl font-bold mb-2">Civilité</h1>
+<p className="text-sm text-gray-500 mb-6">
+  Merci de sélectionner la civilité correspondant à votre pièce d’identité officielle
+</p>
 
-        <button
-          onClick={handleSave}
-          disabled={!civilite || loading}
-          className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            civilite ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {loading ? "Enregistrement..." : "Continuer"}
-        </button>
+<SelecteurCreditX
+  label="Civilité"
+  value={civilite || null}
+  onChange={setCivilite}
+  options={options}
+  placeholder="Sélectionner une civilité"
+  required
+  searchable={false}
+/>
+
+<br></br>
+
+<button
+  onClick={handleSave}
+  disabled={!civilite || loading}
+  className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
+    civilite ? "bg-black text-white hover:bg-gray-900" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+  }`}
+>
+  {loading ? "Enregistrement..." : "Continuer"}
+</button>
+
       </div>
     </div>
   );

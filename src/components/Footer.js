@@ -46,7 +46,11 @@ const Footer = () => {
           <p>CreditX Sàrl</p>
           <p>Avenue de la Gare 54</p>
           <p>CH - 1964 Conthey</p>
-          <p>Email : <a href="mailto:info@creditx.ch" className="hover:underline">info@creditx.ch</a></p>
+          <p>
+            <Link to="/contactform" className="hover:underline">
+              Formulaire de contact
+            </Link>
+          </p>
           
         </div>
       </div>

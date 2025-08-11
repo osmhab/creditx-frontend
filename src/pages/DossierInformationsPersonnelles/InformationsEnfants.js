@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
+import CompteurCreditX from "../../components/CompteurCreditX";
+import DateNaissanceCreditX from "../../components/DateNaissanceCreditX";
+
+
 
 export default function InformationsEnfants() {
   const navigate = useNavigate();
@@ -39,15 +43,16 @@ export default function InformationsEnfants() {
     setEnfants(updated);
   };
 
-  const handleNombreChange = (val) => {
-    const n = parseInt(val);
-    setNombre(n);
-    const current = enfants.slice(0, n);
-    while (current.length < n) {
-      current.push({ prenom: "", dateNaissance: "" });
-    }
-    setEnfants(current);
-  };
+  const handleNombreChange = (n) => {
+  const nb = parseInt(n, 10);
+  setNombre(nb);
+  const current = enfants.slice(0, nb);
+  while (current.length < nb) {
+    current.push({ prenom: "", dateNaissance: "" });
+  }
+  setEnfants(current);
+};
+
 
   const handleSave = async () => {
     setLoading(true);
@@ -115,16 +120,17 @@ export default function InformationsEnfants() {
 
         {enfantsACharge && (
           <div className="mb-6 space-y-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Nombre d’enfants
-            </label>
-            <input
-              type="number"
-              min={1}
-              className="w-full p-3 rounded-xl bg-gray-100 text-sm"
-              value={nombre}
-              onChange={(e) => handleNombreChange(e.target.value)}
-            />
+           <CompteurCreditX
+  label="Nombre d’enfants"
+  value={nombre}
+  onChange={(n) => handleNombreChange(n)}
+  min={1}            // au moins 1 si enfantsACharge = true
+  max={10}           // tu peux ajuster
+  step={1}
+  size="lg"          // un peu plus grand pour le confort
+  helperText="Moins de 18 ans ou moins de 25 ans en formation"
+/>
+
 
             {enfants.map((enfant, index) => (
               <div key={index} className="bg-gray-50 p-4 rounded-xl space-y-2">

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
+import SelecteurCreditX from "../../components/SelecteurCreditX";
+
+
 
 const paysPrioritaires = ["Suisse", "France", "Allemagne", "Italie", "Autriche", "Liechtenstein"];
 
@@ -87,18 +90,18 @@ export default function InformationsNationalite() {
           Veuillez sélectionner votre nationalité actuelle
         </p>
 
-        <select
-          value={nationalite}
-          onChange={(e) => setNationalite(e.target.value)}
-          className="w-full p-4 bg-gray-100 rounded-xl mb-6 text-sm"
-        >
-          <option value="">Sélectionner une nationalité</option>
-          {nationalitesTriees.map((pays) => (
-            <option key={pays} value={pays}>
-              {pays}
-            </option>
-          ))}
-        </select>
+        <SelecteurCreditX
+  label="Nationalité"
+  value={nationalite || null}
+  onChange={(v) => setNationalite(v)}
+  options={nationalitesTriees}
+  priority={["Suisse","France","Allemagne","Italie","Autriche","Liechtenstein"]}
+  placeholder="Sélectionner une nationalité"
+  required
+/>
+
+<br></br>
+
 
         {!estSuisse && nationalite && (
           <div className="mb-8">
