@@ -132,25 +132,22 @@ export default function InformationsEnfants() {
 />
 
 
-            {enfants.map((enfant, index) => (
-              <div key={index} className="bg-gray-50 p-4 rounded-xl space-y-2">
-                <h3 className="font-medium text-sm mb-1">Enfant {index + 1}</h3>
+            {enfants.map((enfant, i) => (
+              <div key={i} className="bg-gray-50 p-4 rounded-xl space-y-3">
+                <h3 className="font-medium text-sm mb-1">Enfant {i + 1}</h3>
                 <input
                   type="text"
                   placeholder="Prénom"
                   className="w-full p-3 rounded-xl bg-white text-sm border"
                   value={enfant.prenom}
-                  onChange={(e) =>
-                    handleChangeEnfant(index, "prenom", e.target.value)
-                  }
+                  onChange={(e) => handleChangeEnfant(i, "prenom", e.target.value)}
                 />
-                <input
-                  type="date"
-                  className="w-full p-3 rounded-xl bg-white text-sm border"
-                  value={enfant.dateNaissance}
-                  onChange={(e) =>
-                    handleChangeEnfant(index, "dateNaissance", e.target.value)
-                  }
+
+                {/* Remplacement par le nouveau composant de date */}
+                <DateNaissanceCreditX
+                  value={enfant.dateNaissance || null}
+                  onChange={(iso /* string|null */) => handleChangeEnfant(i, "dateNaissance", iso)}
+                  required
                 />
               </div>
             ))}

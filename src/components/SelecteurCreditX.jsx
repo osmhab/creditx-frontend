@@ -1,16 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, X, Search } from "lucide-react";
 
 /**
- * SelecteurCreditX — un sélecteur réutilisable, élégant et fluide
+ * SelecteurCreditX — sélecteur réutilisable, élégant et fluide (CreditX)
  *
  * Props
  * - label?: string
- * - value: string | null
- * - onChange: (v: string | null) => void
- * - options: Array<string | { value: string; label: string }>
- * - priority?: string[]              // valeurs à épingler en haut (ex: ["Suisse", "France", ...])
+ * - value: string | number | null
+ * - onChange: (v: string | number | null) => void
+ * - options: Array<string | number | { value: string|number; label: string }>
+ * - priority?: (string|number)[]    // valeurs à épingler en haut
  * - placeholder?: string
  * - helperText?: string
  * - error?: string                   // si défini, affiche l'état d'erreur
@@ -21,7 +21,7 @@ import { ChevronDown, X, Search } from "lucide-react";
  * - emptyMessage?: string            // message quand aucune option ne matche
  * - className?: string
  */
-export default function SelecteurCreditX({
+const SelecteurCreditX = forwardRef(function SelecteurCreditX({
   label,
   value,
   onChange,
@@ -36,17 +36,27 @@ export default function SelecteurCreditX({
   clearable = true,
   emptyMessage = "Aucun résultat",
   className = "",
-}) {
+}, forwardedRef) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef(null);
   const btnRef = useRef(null);
 
-  // Normalise options
+  // Merge external ref to button
+  function setButtonRef(el) {
+    btnRef.current = el;
+    if (typeof forwardedRef === "function") forwardedRef(el);
+    else if (forwardedRef) forwardedRef.current = el;
+  }
+
+  // Normalise options: string | number | {value,label}
   const normalized = useMemo(() => {
-    const arr = options.map((o) =>
-      typeof o === "string" ? { value: o, label: o } : o
-    );
+    const arr = (options || []).map((o) => {
+      if (typeof o === "string" || typeof o === "number") {
+        return { value: o, label: String(o) };
+      }
+      return o; // { value, label }
+    });
     // Déduplique par value
     const map = new Map();
     for (const o of arr) if (!map.has(o.value)) map.set(o.value, o);
@@ -69,10 +79,7 @@ export default function SelecteurCreditX({
   useEffect(() => {
     function handleClickOutside(e) {
       if (!open) return;
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
         setQuery("");
       }
@@ -119,7 +126,7 @@ export default function SelecteurCreditX({
 
       <div className="relative">
         <button
-          ref={btnRef}
+          ref={setButtonRef}
           type="button"
           disabled={disabled}
           onClick={() => !disabled && setOpen((v) => !v)}
@@ -131,7 +138,7 @@ export default function SelecteurCreditX({
             {currentLabel || placeholder}
           </span>
           <div className="flex items-center gap-1">
-            {clearable && value && !disabled && (
+            {clearable && value !== null && value !== undefined && value !== "" && !disabled && (
               <X
                 aria-label="Effacer la valeur"
                 className="h-4 w-4 opacity-50 hover:opacity-100"
@@ -208,7 +215,9 @@ export default function SelecteurCreditX({
       )}
     </div>
   );
-}
+});
+
+export default SelecteurCreditX;
 
 function Section({ title, items, value, onChoose, emptyMessage }) {
   if (!items || items.length === 0) {
@@ -248,58 +257,3 @@ function Section({ title, items, value, onChoose, emptyMessage }) {
     </div>
   );
 }
-
-/**
- * --- Exemples d'utilisation ---
- *
- * 1) Nationalité
- * <SelecteurCreditX
- *   label="Nationalité"
- *   value={nationalite}
- *   onChange={setNationalite}
- *   options={toutesLesNationalites}
- *   priority={["Suisse", "France", "Allemagne", "Italie", "Autriche", "Liechtenstein"]}
- *   placeholder="Sélectionner une nationalité"
- *   required
- * />
- *
- * 2) Civilité
- * const civiliteOptions = ["Monsieur", "Madame", "Autre"];
- * <SelecteurCreditX
- *   label="Civilité"
- *   value={civilite}
- *   onChange={setCivilite}
- *   options={civiliteOptions}
- *   placeholder="Sélectionner une civilité"
- *   required
- * />
- *
- * 3) État civil
- * const etatCivilOptions = ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf/Veuve", "Partenariat enregistré"];
- * <SelecteurCreditX
- *   label="État civil"
- *   value={etatCivil}
- *   onChange={setEtatCivil}
- *   options={etatCivilOptions}
- *   placeholder="Sélectionner un état civil"
- *   required
- * />
- *
- * 4) Degré de formation
- * const formationOptions = [
- *   "Obligatoire",
- *   "Apprentissage (CFC)",
- *   "Maturité / Bac",
- *   "Bachelor / Licence",
- *   "Master",
- *   "Doctorat",
- *   "Autre",
- * ];
- * <SelecteurCreditX
- *   label="Degré de formation"
- *   value={formation}
- *   onChange={setFormation}
- *   options={formationOptions}
- *   placeholder="Sélectionner un degré de formation"
- * />
- */

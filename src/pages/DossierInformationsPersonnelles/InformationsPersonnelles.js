@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
@@ -7,7 +7,7 @@ import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 export default function InformationsPersonnelles() {
   const navigate = useNavigate();
   const { personneId, id } = useParams();
-  const index = parseInt(personneId);
+  const index = parseInt(personneId, 10);
   const [personne, setPersonne] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -17,7 +17,7 @@ export default function InformationsPersonnelles() {
       const snap = await getDoc(ref);
       if (snap.exists()) {
         const data = snap.data();
-        const personneData = data.personnes?.[parseInt(index)];
+        const personneData = data.personnes?.[index];
         setPersonne(personneData || null);
       }
       setLoading(false);
@@ -25,9 +25,27 @@ export default function InformationsPersonnelles() {
     fetchPersonne();
   }, [index, id]);
 
+  // Formatter générique, gère string / number / bool / array / objet adresse
+  const formatValue = (val) => {
+    if (val === null || val === undefined) return null;
+    if (typeof val === "string") return val;
+    if (typeof val === "number" || typeof val === "boolean") return String(val);
+    if (Array.isArray(val)) return val.length ? val.join(", ") : null;
+    if (typeof val === "object") {
+      // cas fréquent : adresse sous forme d'objet
+      const { formatted, route, streetNumber, postalCode, locality } = val;
+      const line1 = route && streetNumber ? `${streetNumber} ${route}` : route;
+      const line2 = [postalCode, locality].filter(Boolean).join(" ");
+      const txt = formatted || [line1, line2].filter(Boolean).join(", ");
+      return txt || null;
+    }
+    return null;
+  };
+
   const renderLigne = (label, field, customValue, path) => {
-    const value = customValue ?? personne?.[field];
-    const isEmpty = !value || (Array.isArray(value) && value.length === 0);
+    const raw = customValue ?? personne?.[field];
+    const value = formatValue(raw);
+    const isEmpty = !value;
     return (
       <div
         onClick={() => navigate(path)}
@@ -59,7 +77,6 @@ export default function InformationsPersonnelles() {
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex justify-center px-4 pt-6">
       <div className="w-full max-w-md">
-
         <button
           onClick={() => navigate(`/informations-personnelles?id=${id}`)}
           className="text-xl mb-6"
@@ -88,16 +105,24 @@ export default function InformationsPersonnelles() {
           {/* Nouvelle ligne Nationalité */}
           {renderLigne("Nationalité", "nationalite", null, `/informations/${index}/${id}/nationalite`)}
 
-          {renderLigne("Adresse complète", "adresse", null, `/informations/${index}/${id}/adresse`)}
+          {/* Adresse complète (objet ou string rétrocompat) */}
+          {renderLigne(
+            "Adresse complète",
+            "adresse",
+            // on tente d'abord objet adresse, sinon string legacy `adresseFormatted`
+            personne?.adresse ?? personne?.adresseFormatted,
+            `/informations/${index}/${id}/adresse`
+          )}
+
           {renderLigne("Degré de formation achevé", "formation", null, `/informations/${index}/${id}/formation`)}
 
           {/* Enfants à charge */}
           {renderLigne(
             "Enfant(s) à charge",
             "enfantsACharge",
-            personne.enfantsACharge === true
+            personne?.enfantsACharge === true
               ? "Oui"
-              : personne.enfantsACharge === false
+              : personne?.enfantsACharge === false
               ? "Non"
               : null,
             `/informations/${index}/${id}/enfants`
