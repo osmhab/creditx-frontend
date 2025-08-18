@@ -52,8 +52,8 @@ export default function InformationsPersonnelles() {
         className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
       >
         <div>
-          <p className="text-sm text-black">{label}</p>
-          <p className={`text-sm ${isEmpty ? "text-[#FF5C02]" : "text-gray-800"}`}>
+          <p className="text-base lg:text-sm text-black">{label}</p>
+          <p className={`text-base lg:text-sm ${isEmpty ? "text-[#FF5C02]" : "text-gray-800"}`}>
             {isEmpty ? "Non renseigné" : value}
           </p>
         </div>
@@ -62,7 +62,7 @@ export default function InformationsPersonnelles() {
     );
   };
 
-  if (loading || !personne) return <div className="p-6">Chargement...</div>;
+  if (loading || !personne) return <div className="p-6 text-base lg:text-sm">Chargement...</div>;
 
   const titre =
     personne.prenom && personne.nom
@@ -79,13 +79,13 @@ export default function InformationsPersonnelles() {
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate(`/informations-personnelles?id=${id}`)}
-          className="text-xl mb-6"
+          className="text-2xl lg:text-xl mb-6"
         >
           ←
         </button>
 
-        <h1 className="text-2xl font-bold">{titre}</h1>
-        <p className="text-sm text-gray-500 mb-6">{sousTitre}</p>
+        <h1 className="text-2xl lg:text-xl font-bold">{titre}</h1>
+        <p className="text-base lg:text-sm text-gray-500 mb-6">{sousTitre}</p>
 
         <div className="bg-white rounded-xl divide-y">
           {personne.role === "secondaire" &&
@@ -109,7 +109,6 @@ export default function InformationsPersonnelles() {
           {renderLigne(
             "Adresse complète",
             "adresse",
-            // on tente d'abord objet adresse, sinon string legacy `adresseFormatted`
             personne?.adresse ?? personne?.adresseFormatted,
             `/informations/${index}/${id}/adresse`
           )}
@@ -129,20 +128,62 @@ export default function InformationsPersonnelles() {
           )}
         </div>
 
-        {/* Bloc Employeurs */}
-        <h2 className="text-sm text-gray-500 mt-8 mb-2">Employeur·s</h2>
+{/* Bloc Employeurs */}
+<h2 className="text-base lg:text-sm text-gray-500 mt-8 mb-2">Employeur·s</h2>
+
+<div className="space-y-3 mb-10">
+  {/* Ajouter — toujours visible */}
+  <div
+    onClick={() => navigate(`/informations/${index}/${id}/employeurs/nouveau`)}
+    className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center">
+        <BusinessOutlinedIcon fontSize="small" className="text-blue-600" />
+      </div>
+      <div>
+        <div className="text-base lg:text-sm font-medium">Ajouter</div>
+      </div>
+    </div>
+    <div className="text-gray-300">›</div>
+  </div>
+
+  {/* Liste des employeurs existants */}
+  {Array.isArray(personne?.employeurs) &&
+    personne.employeurs.map((emp, i) => {
+      const nom = emp?.nom || emp?.raisonSociale || "Employeur sans nom";
+      const statut =
+        emp?.statutEntreprise || emp?.statut || "—";
+      // Règle simple d'incomplétude : ajuste les champs selon ta logique finale
+      const incomplet = !(emp?.nom && (emp?.statutEntreprise || emp?.statut));
+
+      return (
         <div
-          onClick={() => navigate(`/informations/${index}/${id}/employeurs`)}
-          className="bg-white rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+          key={i}
+          onClick={() =>
+            navigate(`/informations/${index}/${id}/employeurs/${i}`)
+          }
+          className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
         >
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 bg-[#EEF2FF] text-blue-600 rounded-full flex items-center justify-center">
-              <BusinessOutlinedIcon fontSize="small" />
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+              <BusinessOutlinedIcon fontSize="small" className="text-white" />
             </div>
-            <span className="text-sm font-medium">Ajouter</span>
+            <div className="min-w-0">
+              <div className="text-base lg:text-sm font-medium truncate">{nom}</div>
+              <div className="text-sm text-gray-500">{statut}</div>
+              {incomplet && (
+                <div className="text-sm text-[#FF5C02]">Action requise</div>
+              )}
+            </div>
           </div>
           <div className="text-gray-300">›</div>
         </div>
+      );
+    })}
+</div>
+
+
       </div>
     </div>
   );

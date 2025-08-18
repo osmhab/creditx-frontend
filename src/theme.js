@@ -3,33 +3,33 @@ import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: "#001BFF", // Bleu CreditX
-      contrastText: "#FFFFFF",
-    },
-    secondary: {
-      // anciennement vert, désormais bleu pour uniformité
-    success: {
-      main: "#001BFF",
-      contrastText: "#FFFFFF",
-    },
-      main: "#001BFF", // Vert validation
-      contrastText: "#FFFFFF",
-    },
-    error: {
-      main: "#FF5A5F",
-      contrastText: "#FFFFFF",
-    },
-    background: {
-      default: "#FFFFFF",
-      paper: "#FFFFFF",
-    },
-    text: {
-      primary: "#111111",
-      secondary: "#444444",
-    },
-    divider: "#E0E0E0",
+  primary: {
+    main: "#001BFF", // Bleu CreditX
+    contrastText: "#FFFFFF",
   },
+  secondary: {
+    main: "#001BFF",
+    contrastText: "#FFFFFF",
+  },
+  success: {
+    main: "#001BFF",
+    contrastText: "#FFFFFF",
+  },
+  error: {
+    main: "#FF5A5F",
+    contrastText: "#FFFFFF",
+  },
+  background: {
+    default: "#FFFFFF",
+    paper: "#FFFFFF",
+  },
+  text: {
+    primary: "#111111",
+    secondary: "#444444",
+  },
+  divider: "#E0E0E0",
+},
+
 
   typography: {
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",

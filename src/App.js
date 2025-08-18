@@ -34,6 +34,8 @@ import InformationsAdresse from "./pages/DossierInformationsPersonnelles/Informa
 import InformationsNationalite from "./pages/DossierInformationsPersonnelles/InformationsNationalite";
 import InformationsEnfants from "./pages/DossierInformationsPersonnelles/InformationsEnfants";
 import InformationsRelation from "./pages/DossierInformationsPersonnelles/InformationsRelation";
+import FormulaireEmployeur from "./pages/DossierInformationsPersonnelles/FormulaireEmployeur";
+
 
 
 
@@ -85,6 +87,9 @@ function App() {
 <Route path="/informations/:personneId/:id/nationalite" element={<InformationsNationalite />} />
 <Route path="/informations/:personneId/:id/enfants" element={<InformationsEnfants />} />
 <Route path="/informations/:personneId/:id/relation" element={<InformationsRelation />} />
+
+<Route path="/informations/:personneId/:id/employeurs/:employeurId" element={<FormulaireEmployeur />}/>
+
 
 
 

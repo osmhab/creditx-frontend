@@ -19,7 +19,8 @@ body {
   line-height: 1.6;
 }
 
-button {
+/* Ces styles ne s'appliquent PAS aux boutons avec la classe .tw */
+button:not(.tw) {
   background-color: var(--color-primary);
   color: white;
   padding: 12px 20px;
@@ -30,10 +31,10 @@ button {
   font-size: 1rem;
   transition: background-color 0.2s ease-in-out;
 }
-
-button:hover {
+button:not(.tw):hover {
   background-color: #0052cc;
 }
+
 
 input, select, textarea {
   font-family: var(--font-family);

@@ -6,7 +6,6 @@ import PersonIcon from "@mui/icons-material/Person";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import ModalMessage from "../../components/ModalMessage";
 
-
 const MAX_PERSONNES = 2;
 
 export default function DonneesPersonnelles() {
@@ -17,7 +16,6 @@ export default function DonneesPersonnelles() {
   const [donnees, setDonnees] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // État pour confirmation de suppression
   const [modalConfirm, setModalConfirm] = useState(false);
   const [indexToDelete, setIndexToDelete] = useState(null);
 
@@ -61,13 +59,11 @@ export default function DonneesPersonnelles() {
     navigate(`/informations/${nouvellesPersonnes.length - 1}/${id}`);
   };
 
-  // Étape 1 : ouvrir le modal de confirmation
   const confirmerSuppression = (index) => {
     setIndexToDelete(index);
     setModalConfirm(true);
   };
 
-  // Étape 2 : supprimer la personne si confirmation
   const handleSupprimerPersonne = async () => {
     if (indexToDelete === null) return;
 
@@ -95,11 +91,14 @@ export default function DonneesPersonnelles() {
   return (
     <div className="min-h-screen bg-white flex justify-center px-4 pt-6">
       <div className="w-full max-w-md">
-        <button onClick={() => navigate("/dashboard")} className="text-xl mb-4">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="text-2xl lg:text-xl mb-4"
+        >
           ←
         </button>
 
-        <h1 className="text-xl font-bold mb-6">Données personnelles</h1>
+        <h1 className="text-2xl lg:text-xl font-bold mb-6">Données personnelles</h1>
 
         <div className="bg-[#F9F9F9] rounded-xl divide-y">
           {personnes.length > 0 &&
@@ -121,23 +120,19 @@ export default function DonneesPersonnelles() {
                       {getInitials(personne.prenom, personne.nom)}
                     </div>
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium text-base lg:text-sm">
                         {personne.prenom || (
-                          <span className="text-[#FF5C02]">
-                            Prénom non renseigné
-                          </span>
+                          <span className="text-[#FF5C02]">Prénom non renseigné</span>
                         )}{" "}
                         {personne.nom || (
-                          <span className="text-[#FF5C02]">
-                            Nom non renseigné
-                          </span>
+                          <span className="text-[#FF5C02]">Nom non renseigné</span>
                         )}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm lg:text-xs text-gray-500">
                         {index === 0 ? "Demandeur principal" : "Demandeur 2"}
                       </p>
                       {manqueRelation && (
-                        <p className="text-xs text-[#FF5C02]">
+                        <p className="text-sm lg:text-xs text-[#FF5C02]">
                           Lien non renseigné
                         </p>
                       )}
@@ -156,7 +151,6 @@ export default function DonneesPersonnelles() {
               );
             })}
 
-          {/* BOUTON AJOUTER */}
           {personnes.length < MAX_PERSONNES && (
             <div
               onClick={handleAjouterPersonne}
@@ -167,7 +161,7 @@ export default function DonneesPersonnelles() {
                   <PersonIcon fontSize="small" />
                 </div>
                 <div>
-                  <p className="font-medium">
+                  <p className="font-medium text-base lg:text-sm">
                     {personnes.length === 0
                       ? "Ajouter une première personne"
                       : "Ajouter une autre personne"}
@@ -179,14 +173,14 @@ export default function DonneesPersonnelles() {
           )}
         </div>
 
-        {/* MODAL DE CONFIRMATION */}
         <ModalMessage
           open={modalConfirm}
           onClose={() => setModalConfirm(false)}
           onConfirm={handleSupprimerPersonne}
           title="Supprimer cette personne ?"
-          message={`Êtes-vous sûr de vouloir supprimer ${donnees?.personnes?.[indexToDelete]?.prenom || ""
-            } ${donnees?.personnes?.[indexToDelete]?.nom || ""} ? Cette action est irréversible.`}
+          message={`Êtes-vous sûr de vouloir supprimer ${
+            donnees?.personnes?.[indexToDelete]?.prenom || ""
+          } ${donnees?.personnes?.[indexToDelete]?.nom || ""} ? Cette action est irréversible.`}
           confirmText="Supprimer"
           cancelText="Annuler"
         />

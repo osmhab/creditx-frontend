@@ -155,16 +155,17 @@ export default function InformationsEnfants() {
         )}
 
         <button
-          onClick={handleSave}
-          disabled={loading || enfantsACharge === null}
-          className={`w-full rounded-full py-3 text-center text-sm font-medium transition ${
-            enfantsACharge !== null
-              ? "bg-black text-white hover:bg-gray-900"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {loading ? "Enregistrement..." : "Continuer"}
-        </button>
+  onClick={handleSave}
+  disabled={loading || enfantsACharge === null}
+  className={`w-full rounded-full py-3 text-center text-sm font-medium transition mb-10 ${
+    enfantsACharge !== null
+      ? "bg-black text-white hover:bg-gray-900"
+      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+  }`}
+>
+  {loading ? "Enregistrement..." : "Continuer"}
+</button>
+
       </div>
     </div>
   );
