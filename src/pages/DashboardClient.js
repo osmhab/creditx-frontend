@@ -97,21 +97,30 @@ export default function DashboardClient() {
   };
 
   const getStatutAffichage = (key, value) => {
-    if (!value || value === "Non défini") {
-      return {
-        label: "Action requise",
-        color: "#FF5C02", // orange
-        icon: null,
-        fontWeight: "font-semibold",
-      };
+  const v = (value || "").toString();
+
+  // Cas "Demande" (typeDemande) : on affiche sa valeur telle quelle ou "Action requise"
+  if (key === "typeDemande") {
+    if (!v || v === "Non défini") {
+      return { label: "Action requise", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
     }
-    return {
-      label: key === "typeDemande" ? value : "Complété",
-      color: "#000000", // noir
-      icon: null,
-      fontWeight: "font-semibold",
-    };
-  };
+    return { label: v, color: "#000000", icon: null, fontWeight: "font-semibold" };
+  }
+
+  // États normalisés
+  if (v === "Critère bloquant") {
+    return { label: "Critère bloquant", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
+  }
+  if (v === "Terminé" || v === "Complété") {
+    return { label: "Terminé", color: "#00B050", icon: null, fontWeight: "font-semibold" };
+  }
+
+  // Par défaut / Non défini
+  return { label: "Action requise", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
+};
+
+
+
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-[#F7F7F7] relative">

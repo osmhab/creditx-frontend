@@ -5,6 +5,16 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 
+
+// Calcule l'état global de la section "Informations personnelles" à partir de la liste des employeurs
+const computeEtatInfosFromEmpList = (employeurs = []) => {
+  if (!Array.isArray(employeurs) || employeurs.length === 0) return "Action requise";
+  if (employeurs.some((e) => e?.bloquant === true)) return "Critère bloquant";
+  const allComplete = employeurs.every((e) => e?.complet === true && e?.bloquant !== true);
+  return allComplete ? "Terminé" : "Action requise";
+};
+
+
 /**
  * FormulaireEmployeur
  * - Gère deux modes : création (employeurId === "nouveau") et édition (index numérique)
@@ -192,7 +202,8 @@ export default function FormulaireEmployeur() {
   }, [
     statutEntreprise,
     indep36Plus,
-    raisonSociale, // NEW
+    raisonSociale,
+    adresseIndep,
     indepRevenuN1,
     indepRevenuN2,
     indepRevenuN3,
@@ -203,92 +214,108 @@ export default function FormulaireEmployeur() {
     revenuMontant,
   ]);
 
-  // -------- Enregistrer --------
-  const handleSave = async () => {
-    const ref = doc(db, "demandes", id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
+// -------- Enregistrer --------
+const handleSave = async () => {
+  const ref = doc(db, "demandes", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
 
-    const data = snap.data();
-    const pers = Array.isArray(data.personnes) ? [...data.personnes] : [];
-    const current = pers[pIndex] || {};
-    const empList = Array.isArray(current.employeurs) ? [...current.employeurs] : [];
+  const data = snap.data();
+  const pers = Array.isArray(data.personnes) ? [...data.personnes] : [];
+  const current = pers[pIndex] || {};
+  const empList = Array.isArray(current.employeurs) ? [...current.employeurs] : [];
 
-    let payload = { statutAffichage: "", complet: false };
+  let payload = { statutAffichage: "", complet: false };
 
-    if (statutEntreprise === "independant") {
-      payload = {
-        ...payload,
-        statutEntreprise: "independant",
-        statutAffichage: "Indépendant",
-        indep36Plus: indep36Plus === true,
-        nom: raisonSociale?.trim() || "", // NEW
-        adresse: adresseIndep?.trim() || "", // NEW
+  if (statutEntreprise === "independant") {
+    payload = {
+      ...payload,
+      statutEntreprise: "independant",
+      statutAffichage: "Indépendant",
+      indep36Plus: indep36Plus === true,
+      nom: raisonSociale?.trim() || "",
+      adresse: adresseIndep?.trim() || "",
+      bloquant: indep36Plus === false, // critère bloquant si <36 mois
+    };
+
+    if (indep36Plus) {
+      payload.indepRevenu = {
+        [anneeCourante - 1]: parseCHF(indepRevenuN1) || 0,
+        [anneeCourante - 2]: parseCHF(indepRevenuN2) || 0,
+        [anneeCourante - 3]: parseCHF(indepRevenuN3) || 0,
       };
-
-      if (indep36Plus) {
-        payload.indepRevenu = {
-          [anneeCourante - 1]: parseCHF(indepRevenuN1) || 0,
-          [anneeCourante - 2]: parseCHF(indepRevenuN2) || 0,
-          [anneeCourante - 3]: parseCHF(indepRevenuN3) || 0,
-        };
-        payload.complet =
-          payload.indepRevenu[anneeCourante - 1] > 0 &&
-          payload.indepRevenu[anneeCourante - 2] > 0 &&
-          payload.indepRevenu[anneeCourante - 3] > 0 &&
-          !!payload.nom;
-      } else {
-        payload.complet = true; // processus terminé (non éligible)
-      }
-    }
-
-    if (statutEntreprise === "salarie") {
-      const bonusObj = {};
-      if (bonusActive) {
-        const y = parseCHF(bonusY);
-        const y1 = parseCHF(bonusY1);
-        const y2 = parseCHF(bonusY2);
-        if (y != null) bonusObj[anneeCourante] = y;
-        if (y1 != null) bonusObj[anneeCourante - 1] = y1;
-        if (y2 != null) bonusObj[anneeCourante - 2] = y2;
-      }
-
-      payload = {
-        ...payload,
-        statutEntreprise: "salarie",
-        statutAffichage: "Salarié",
-        revenusIrreguliers: salaireIrreg === true,
-        salaireAncienneteOK: salaireAncienneteOK === true,
-        nom: nomEmployeur?.trim(),
-        adresse: adresseEmployeur?.trim(), // On branchera l'objet adresse plus tard
-        revenuBase: {
-          mode: revenuMode,
-          frequenceMensuelle: revenuMode === "mensuel" ? frequenceMensuelle : null,
-          montant: parseCHF(revenuMontant) || 0,
-        },
-        revenuAnnuel: revenuAnnuelCalcule || 0,
-        bonus: bonusObj,
-        bonusActive: !!bonusActive,
-      };
-
       payload.complet =
-        salaireAncienneteOK === false
-          ? true // processus terminé (non éligible)
-          : !!(payload.nom && payload.adresse && payload.revenuBase.montant > 0);
-    }
-
-    if (isCreate) {
-      empList.push(payload);
+        payload.indepRevenu[anneeCourante - 1] > 0 &&
+        payload.indepRevenu[anneeCourante - 2] > 0 &&
+        payload.indepRevenu[anneeCourante - 3] > 0 &&
+        !!payload.nom &&
+        !!payload.adresse;
     } else {
-      empList[editIndex] = { ...(empList[editIndex] || {}), ...payload };
+      // processus “terminé” mais bloquant
+      payload.complet = true;
+    }
+  }
+
+  if (statutEntreprise === "salarie") {
+    const bonusObj = {};
+    if (bonusActive) {
+      const y = parseCHF(bonusY);
+      const y1 = parseCHF(bonusY1);
+      const y2 = parseCHF(bonusY2);
+      if (y != null) bonusObj[anneeCourante] = y;
+      if (y1 != null) bonusObj[anneeCourante - 1] = y1;
+      if (y2 != null) bonusObj[anneeCourante - 2] = y2;
     }
 
-    pers[pIndex] = { ...(pers[pIndex] || {}), employeurs: empList };
-    await updateDoc(ref, { personnes: pers });
+    payload = {
+      ...payload,
+      statutEntreprise: "salarie",
+      statutAffichage: "Salarié",
+      revenusIrreguliers: salaireIrreg === true,
+      salaireAncienneteOK: salaireAncienneteOK === true,
+      nom: nomEmployeur?.trim(),
+      adresse: adresseEmployeur?.trim(), // objet Google plus tard
+      revenuBase: {
+        mode: revenuMode,
+        frequenceMensuelle: revenuMode === "mensuel" ? frequenceMensuelle : null,
+        montant: parseCHF(revenuMontant) || 0,
+      },
+      revenuAnnuel: revenuAnnuelCalcule || 0,
+      bonus: bonusObj,
+      bonusActive: !!bonusActive,
+    };
 
-    // Retour à la fiche "Informations" de la personne
-    navigate(`/informations/${pIndex}/${id}`);
-  };
+    payload.complet =
+      salaireAncienneteOK === false
+        ? true // fin du formulaire (bloquant)
+        : !!(payload.nom && payload.adresse && payload.revenuBase.montant > 0);
+
+    // critère bloquant si ancienneté insuffisante
+    payload.bloquant = salaireAncienneteOK === false;
+  }
+
+  if (isCreate) {
+    empList.push(payload);
+  } else {
+    empList[editIndex] = { ...(empList[editIndex] || {}), ...payload };
+  }
+
+  // Met à jour la personne avec sa liste d’employeurs
+  pers[pIndex] = { ...(pers[pIndex] || {}), employeurs: empList };
+
+  // Calcule l’état global de la section pour CETTE personne
+  const newEtat = computeEtatInfosFromEmpList(empList);
+
+  // Écrit AUSSI l’état sur la personne (pour l’affichage dans DonneesPersonnelles)
+  pers[pIndex] = { ...pers[pIndex], etatInfos: newEtat };
+
+  // Met à jour Firestore : personnes + état global du dossier (onglet Informations personnelles)
+  await updateDoc(ref, { personnes: pers, etatInfos: newEtat });
+
+  // Retour à la fiche "Informations" de la personne
+  navigate(`/informations/${pIndex}/${id}`);
+};
+
 
   // -------- UI helpers --------
   const RadioBtn = ({ checked, onClick, label }) => (

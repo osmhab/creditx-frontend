@@ -131,6 +131,16 @@ export default function DonneesPersonnelles() {
                       <p className="text-sm lg:text-xs text-gray-500">
                         {index === 0 ? "Demandeur principal" : "Demandeur 2"}
                       </p>
+                      {personne.etatInfos === "Critère bloquant" && (
+                        <p className="text-sm lg:text-xs text-[#FF5C02]">Critère bloquant</p>
+                      )}
+                      {personne.etatInfos === "Terminé" && (
+                        <p className="text-sm lg:text-xs text-[#00B050]">Terminé</p>
+                      )}
+                      {(!personne.etatInfos || personne.etatInfos === "Action requise") && (
+                        <p className="text-sm lg:text-xs text-[#FF5C02]">Action requise</p>
+                      )}
+
                       {manqueRelation && (
                         <p className="text-sm lg:text-xs text-[#FF5C02]">
                           Lien non renseigné

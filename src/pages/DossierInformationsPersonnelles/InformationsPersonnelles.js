@@ -5,6 +5,16 @@ import { db } from "../../firebase-config";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import ModalMessage from "../../components/ModalMessage";
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+
+
+const computeEtatInfosFromEmpList = (employeurs = []) => {
+  if (!Array.isArray(employeurs) || employeurs.length === 0) return "Action requise";
+  if (employeurs.some((e) => e?.bloquant === true)) return "Critère bloquant";
+  const allComplete = employeurs.every((e) => e?.complet === true && e?.bloquant !== true);
+  return allComplete ? "Terminé" : "Action requise";
+};
+
 
 export default function InformationsPersonnelles() {
   const navigate = useNavigate();
@@ -49,19 +59,29 @@ const handleSupprimerEmployeur = async () => {
   const data = snap.data();
   const personnes = Array.isArray(data.personnes) ? [...data.personnes] : [];
   const p = personnes[index] || {};
-
   const employeurs = Array.isArray(p.employeurs) ? [...p.employeurs] : [];
+
+  // suppression
   employeurs.splice(empIndexToDelete, 1);
 
-  personnes[index] = { ...p, employeurs };
+  // recalc état de la section "Infos perso" pour CETTE personne
+  const newEtat = computeEtatInfosFromEmpList(employeurs);
 
-  await updateDoc(ref, { personnes });
+  // écris la nouvelle liste + l'état sur la personne
+  personnes[index] = { ...p, employeurs, etatInfos: newEtat };
 
-  // rafraîchir l'état local sans tout recharger
+  // mets aussi à jour l'état global du dossier (onglet "Informations personnelles")
+  await updateDoc(ref, { personnes, etatInfos: newEtat });
+
+  // UI local
   setPersonne(personnes[index] || null);
   setModalConfirmEmp(false);
   setEmpIndexToDelete(null);
 };
+
+
+
+
 
 
   // Formatter générique, gère string / number / bool / array / objet adresse
@@ -167,6 +187,32 @@ const handleSupprimerEmployeur = async () => {
           )}
         </div>
 
+{/* Bloc Crédits & engagements */}
+<h2 className="text-base lg:text-sm text-gray-500 mt-8 mb-2">Crédits & engagements</h2>
+
+<div
+  onClick={() => navigate(`/informations/${index}/${id}/credits`)}
+  className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+>
+  <div className="flex items-center gap-3">
+    <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center">
+      <AssignmentTurnedInOutlinedIcon fontSize="small" className="text-creditxblue" />
+    </div>
+    <div>
+      <div className="text-base lg:text-sm font-medium">Ouvrir le questionnaire</div>
+      {/* Etat de la section charges */}
+      {(() => {
+        const ch = personne?.charges;
+        const etat = ch?.bloquant ? "Critère bloquant" : ch?.complet ? "Terminé" : "Action requise";
+        const color = etat === "Terminé" ? "#00B050" : "#FF5C02";
+        return <div className="text-sm" style={{ color }}>{etat}</div>;
+      })()}
+    </div>
+  </div>
+</div>
+
+
+
 {/* Bloc Employeurs */}
 <h2 className="text-base lg:text-sm text-gray-500 mt-8 mb-2">Employeur·s</h2>
 
@@ -201,8 +247,13 @@ const handleSupprimerEmployeur = async () => {
           ? "Salarié"
           : "—");
 
-      // Règle simple d'incomplétude (à durcir au besoin)
-      const incomplet = !(emp?.nom && emp?.statutEntreprise);
+       // État granulaire par employeur
+      const etatEmp = emp?.bloquant
+        ? "Critère bloquant"
+        : emp?.complet
+        ? "Terminé"
+        : "Action requise";
+      const etatColor = etatEmp === "Terminé" ? "#00B050" : "#FF5C02";
 
       return (
         <div
@@ -222,9 +273,7 @@ const handleSupprimerEmployeur = async () => {
                 {nom}
               </div>
               <div className="text-sm text-gray-500">{statutAffiche}</div>
-              {incomplet && (
-                <div className="text-sm text-[#FF5C02]">Action requise</div>
-              )}
+              <div className="text-sm" style={{ color: etatColor }}>{etatEmp}</div>
             </div>
           </div>
 
