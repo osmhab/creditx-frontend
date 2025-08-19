@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import ModalMessage from "../../components/ModalMessage";
 
 export default function InformationsPersonnelles() {
   const navigate = useNavigate();
@@ -10,6 +12,9 @@ export default function InformationsPersonnelles() {
   const index = parseInt(personneId, 10);
   const [personne, setPersonne] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [modalConfirmEmp, setModalConfirmEmp] = useState(false);
+  const [empIndexToDelete, setEmpIndexToDelete] = useState(null);
+
 
   useEffect(() => {
     const fetchPersonne = async () => {
@@ -24,6 +29,40 @@ export default function InformationsPersonnelles() {
     };
     fetchPersonne();
   }, [index, id]);
+
+  const confirmerSuppressionEmployeur = (index) => {
+  setEmpIndexToDelete(index);
+  setModalConfirmEmp(true);
+};
+
+const handleSupprimerEmployeur = async () => {
+  if (empIndexToDelete === null) return;
+
+  const ref = doc(db, "demandes", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    setModalConfirmEmp(false);
+    setEmpIndexToDelete(null);
+    return;
+  }
+
+  const data = snap.data();
+  const personnes = Array.isArray(data.personnes) ? [...data.personnes] : [];
+  const p = personnes[index] || {};
+
+  const employeurs = Array.isArray(p.employeurs) ? [...p.employeurs] : [];
+  employeurs.splice(empIndexToDelete, 1);
+
+  personnes[index] = { ...p, employeurs };
+
+  await updateDoc(ref, { personnes });
+
+  // rafraîchir l'état local sans tout recharger
+  setPersonne(personnes[index] || null);
+  setModalConfirmEmp(false);
+  setEmpIndexToDelete(null);
+};
+
 
   // Formatter générique, gère string / number / bool / array / objet adresse
   const formatValue = (val) => {
@@ -139,7 +178,7 @@ export default function InformationsPersonnelles() {
   >
     <div className="flex items-center gap-3">
       <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center">
-        <BusinessOutlinedIcon fontSize="small" className="text-blue-600" />
+        <BusinessOutlinedIcon fontSize="small" className="text-creditxblue" />
       </div>
       <div>
         <div className="text-base lg:text-sm font-medium">Ajouter</div>
@@ -152,39 +191,75 @@ export default function InformationsPersonnelles() {
   {Array.isArray(personne?.employeurs) &&
     personne.employeurs.map((emp, i) => {
       const nom = emp?.nom || emp?.raisonSociale || "Employeur sans nom";
-      const statut =
-        emp?.statutEntreprise || emp?.statut || "—";
-      // Règle simple d'incomplétude : ajuste les champs selon ta logique finale
-      const incomplet = !(emp?.nom && (emp?.statutEntreprise || emp?.statut));
+
+      // Libellé de statut propre
+      const statutAffiche =
+        emp?.statutAffichage ||
+        (emp?.statutEntreprise === "independant"
+          ? "Indépendant"
+          : emp?.statutEntreprise === "salarie"
+          ? "Salarié"
+          : "—");
+
+      // Règle simple d'incomplétude (à durcir au besoin)
+      const incomplet = !(emp?.nom && emp?.statutEntreprise);
 
       return (
         <div
           key={i}
-          onClick={() =>
-            navigate(`/informations/${index}/${id}/employeurs/${i}`)
-          }
-          className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+          className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between hover:bg-gray-50"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+          {/* Zone cliquable (ouvre l’édition) */}
+          <div
+            onClick={() => navigate(`/informations/${index}/${id}/employeurs/${i}`)}
+            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+          >
+            <div className="w-8 h-8 rounded-full bg-creditxblue flex items-center justify-center">
               <BusinessOutlinedIcon fontSize="small" className="text-white" />
             </div>
             <div className="min-w-0">
-              <div className="text-base lg:text-sm font-medium truncate">{nom}</div>
-              <div className="text-sm text-gray-500">{statut}</div>
+              <div className="text-base lg:text-sm font-medium truncate">
+                {nom}
+              </div>
+              <div className="text-sm text-gray-500">{statutAffiche}</div>
               {incomplet && (
                 <div className="text-sm text-[#FF5C02]">Action requise</div>
               )}
             </div>
           </div>
-          <div className="text-gray-300">›</div>
+
+          {/* Actions (chevron + poubelle) */}
+          <div className="flex items-center gap-2 pl-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // n’ouvre pas l’édition
+                confirmerSuppressionEmployeur(i);
+              }}
+              className="text-red-500 hover:text-red-700"
+              title="Supprimer cet employeur"
+              type="button"
+            >
+              <DeleteOutlineOutlinedIcon fontSize="small" />
+            </button>
+          </div>
         </div>
       );
     })}
 </div>
 
+{/* Modale de confirmation de suppression — en dehors de la boucle */}
+<ModalMessage
+  open={modalConfirmEmp}
+  onClose={() => setModalConfirmEmp(false)}
+  onConfirm={handleSupprimerEmployeur}
+  title="Supprimer cet employeur ?"
+  message={`Cette action est irréversible. Voulez-vous vraiment supprimer cet employeur ?`}
+  confirmText="Supprimer"
+  cancelText="Annuler"
+/>
 
       </div>
     </div>
   );
 }
+

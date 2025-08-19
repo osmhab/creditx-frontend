@@ -21,12 +21,9 @@ export default function FormulaireEmployeur() {
 
   const anneeCourante = new Date().getFullYear();
 
-  
-
   // -------- Helpers format CHF --------
   const formatCHF = useCallback((val) => {
     if (val === null || val === undefined || val === "") return "";
-    // accepte nombre ou string
     const n = typeof val === "number" ? val : Number(String(val).replace(/[^0-9.-]/g, ""));
     if (Number.isNaN(n)) return "";
     return n.toLocaleString("fr-CH");
@@ -48,6 +45,8 @@ export default function FormulaireEmployeur() {
 
   // Indépendant
   const [indep36Plus, setIndep36Plus] = useState(null); // true/false
+  const [raisonSociale, setRaisonSociale] = useState(""); // NEW
+  const [adresseIndep, setAdresseIndep] = useState(""); // NEW
   const [indepRevenuN1, setIndepRevenuN1] = useState("");
   const [indepRevenuN2, setIndepRevenuN2] = useState("");
   const [indepRevenuN3, setIndepRevenuN3] = useState("");
@@ -92,10 +91,28 @@ export default function FormulaireEmployeur() {
           setStatutEntreprise(currentEmp.statutEntreprise || null);
 
           if (currentEmp.statutEntreprise === "independant") {
+            setRaisonSociale(currentEmp.nom || currentEmp.raisonSociale || ""); // NEW
+            setAdresseIndep(
+            typeof currentEmp.adresse === "string"
+                ? currentEmp.adresse
+                : currentEmp.adresse?.formatted || ""
+            );
             setIndep36Plus(currentEmp.indep36Plus ?? null);
-            setIndepRevenuN1(currentEmp.indepRevenu?.[anneeCourante - 1] ? formatCHF(currentEmp.indepRevenu[anneeCourante - 1]) : "");
-            setIndepRevenuN2(currentEmp.indepRevenu?.[anneeCourante - 2] ? formatCHF(currentEmp.indepRevenu[anneeCourante - 2]) : "");
-            setIndepRevenuN3(currentEmp.indepRevenu?.[anneeCourante - 3] ? formatCHF(currentEmp.indepRevenu[anneeCourante - 3]) : "");
+            setIndepRevenuN1(
+              currentEmp.indepRevenu?.[anneeCourante - 1]
+                ? formatCHF(currentEmp.indepRevenu[anneeCourante - 1])
+                : ""
+            );
+            setIndepRevenuN2(
+              currentEmp.indepRevenu?.[anneeCourante - 2]
+                ? formatCHF(currentEmp.indepRevenu[anneeCourante - 2])
+                : ""
+            );
+            setIndepRevenuN3(
+              currentEmp.indepRevenu?.[anneeCourante - 3]
+                ? formatCHF(currentEmp.indepRevenu[anneeCourante - 3])
+                : ""
+            );
           }
 
           if (currentEmp.statutEntreprise === "salarie") {
@@ -115,8 +132,8 @@ export default function FormulaireEmployeur() {
             const b = currentEmp.bonus || {};
             setBonusActive(
               typeof b[anneeCourante] === "number" ||
-              typeof b[anneeCourante - 1] === "number" ||
-              typeof b[anneeCourante - 2] === "number"
+                typeof b[anneeCourante - 1] === "number" ||
+                typeof b[anneeCourante - 2] === "number"
                 ? true
                 : currentEmp.bonusActive ?? null
             );
@@ -142,8 +159,10 @@ export default function FormulaireEmployeur() {
 
   // -------- Garde-fous d'ancienneté (affichages "FIN DU FORMULAIRE") --------
   const showBlocFinIndep = statutEntreprise === "independant" && indep36Plus === false;
-  const showBlocFinSalIrr = statutEntreprise === "salarie" && salaireIrreg === true && salaireAncienneteOK === false;
-  const showBlocFinSalReg = statutEntreprise === "salarie" && salaireIrreg === false && salaireAncienneteOK === false;
+  const showBlocFinSalIrr =
+    statutEntreprise === "salarie" && salaireIrreg === true && salaireAncienneteOK === false;
+  const showBlocFinSalReg =
+    statutEntreprise === "salarie" && salaireIrreg === false && salaireAncienneteOK === false;
 
   // -------- Validation minimale --------
   const canSave = useMemo(() => {
@@ -151,28 +170,29 @@ export default function FormulaireEmployeur() {
 
     if (statutEntreprise === "independant") {
       if (indep36Plus === null) return false;
-      if (indep36Plus === false) return true; // formulaire se termine ici
-      // sinon: 3 revenus requis
+      if (indep36Plus === false) return true; // fin du formulaire (message)
+      // sinon: raison sociale + 3 revenus requis
+      if (!raisonSociale?.trim()) return false; // NEW
+      if (!adresseIndep?.trim()) return false; // NEW
       return [indepRevenuN1, indepRevenuN2, indepRevenuN3].every((v) => parseCHF(v) !== null);
     }
 
     // salarié
     if (salaireIrreg === null) return false;
     if (salaireAncienneteOK === null) return false;
-
-    if (salaireAncienneteOK === false) return true; // fin de formulaire (message)
+    if (salaireAncienneteOK === false) return true; // fin du formulaire (message)
 
     // champs requis communs
     if (!nomEmployeur?.trim()) return false;
     if (!adresseEmployeur?.trim()) return false;
     if (parseCHF(revenuMontant) === null) return false;
 
-    // bonus: si activé, on n'impose pas les 3 montants (peuvent être partiels)
     return true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     statutEntreprise,
     indep36Plus,
+    raisonSociale, // NEW
     indepRevenuN1,
     indepRevenuN2,
     indepRevenuN3,
@@ -202,6 +222,8 @@ export default function FormulaireEmployeur() {
         statutEntreprise: "independant",
         statutAffichage: "Indépendant",
         indep36Plus: indep36Plus === true,
+        nom: raisonSociale?.trim() || "", // NEW
+        adresse: adresseIndep?.trim() || "", // NEW
       };
 
       if (indep36Plus) {
@@ -213,7 +235,8 @@ export default function FormulaireEmployeur() {
         payload.complet =
           payload.indepRevenu[anneeCourante - 1] > 0 &&
           payload.indepRevenu[anneeCourante - 2] > 0 &&
-          payload.indepRevenu[anneeCourante - 3] > 0;
+          payload.indepRevenu[anneeCourante - 3] > 0 &&
+          !!payload.nom;
       } else {
         payload.complet = true; // processus terminé (non éligible)
       }
@@ -248,7 +271,6 @@ export default function FormulaireEmployeur() {
         bonusActive: !!bonusActive,
       };
 
-      // Complétude minimale si l'ancienneté est OK
       payload.complet =
         salaireAncienneteOK === false
           ? true // processus terminé (non éligible)
@@ -275,9 +297,7 @@ export default function FormulaireEmployeur() {
       onClick={onClick}
       className={`px-3 py-2 rounded-xl border text-sm ${
         checked ? "border-creditxblue text-creditxblue" : "border-gray-300 text-gray-700"
-        }`}
-
-
+      }`}
     >
       {label}
     </button>
@@ -289,8 +309,7 @@ export default function FormulaireEmployeur() {
       onClick={onClick}
       className={`px-3 py-1 rounded-full text-sm border ${
         active ? "bg-creditxblue text-white border-creditxblue" : "bg-white text-gray-700 border-gray-300"
-        }`}
-
+      }`}
     >
       {label}
     </button>
@@ -369,6 +388,29 @@ export default function FormulaireEmployeur() {
 
               {indep36Plus === true && (
                 <div className="space-y-4">
+                  {/* NEW: Raison sociale */}
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">Nom de la raison sociale *</div>
+                    <input
+                      className="w-full rounded-xl border px-3 py-2"
+                      value={raisonSociale}
+                      onChange={(e) => setRaisonSociale(e.target.value)}
+                      placeholder="Raison sociale / Nom commercial"
+                    />
+                  </div>
+
+                  {/* NEW: Adresse */}
+                <div>
+                <div className="text-sm text-gray-600 mb-2">Adresse de la raison sociale *</div>
+                <input
+                    className="w-full rounded-xl border px-3 py-2"
+                    value={adresseIndep}
+                    onChange={(e) => setAdresseIndep(e.target.value)}
+                    placeholder="Adresse et Localité"
+                />
+                {/* Tu brancheras l’API Google Adresse ici plus tard */}
+                </div>
+
                   <div>
                     <div className="text-sm text-gray-600 mb-2">
                       Revenu net annuel de l’année {anneeCourante - 1}
@@ -462,19 +504,17 @@ export default function FormulaireEmployeur() {
                       className="w-full rounded-xl border px-3 py-2"
                       value={nomEmployeur}
                       onChange={(e) => setNomEmployeur(e.target.value)}
-                      placeholder="AXA Suisse"
+                      placeholder="Employeur SA"
                     />
                   </div>
 
                   <div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      Adresse de l’employeur (Google Adresse API) *
-                    </div>
+                    <div className="text-sm text-gray-600 mb-2">Adresse de l’employeur *</div>
                     <input
                       className="w-full rounded-xl border px-3 py-2"
                       value={adresseEmployeur}
                       onChange={(e) => setAdresseEmployeur(e.target.value)}
-                      placeholder="Rue Exemple 1, 1950 Sion"
+                      placeholder="Adresse et Localité"
                     />
                     {/* À remplacer par ton composant Adresse (Google) plus tard */}
                   </div>
@@ -589,26 +629,24 @@ export default function FormulaireEmployeur() {
 
         {/* Actions */}
         <div className="mt-6 mb-10 flex items-center gap-3">
-
           <button
             onClick={() => navigate(-1)}
             className="tw px-4 py-2 rounded-xl border border-gray-300 text-gray-700"
             type="button"
-            >
+          >
             Annuler
-            </button>
+          </button>
 
           <button
-        onClick={handleSave}
-        disabled={!canSave}
-        className={`tw px-4 py-2 rounded-xl text-white ${
-            canSave ? "bg-creditxblue hover:opacity-90" : "bg-gray-300 cursor-not-allowed"
-        }`}
-        type="button"
-        >
-        Enregistrer
-        </button>
-
+            onClick={handleSave}
+            disabled={!canSave}
+            className={`tw px-4 py-2 rounded-xl text-white ${
+              canSave ? "bg-creditxblue hover:opacity-90" : "bg-gray-300 cursor-not-allowed"
+            }`}
+            type="button"
+          >
+            Enregistrer
+          </button>
         </div>
       </div>
     </div>
