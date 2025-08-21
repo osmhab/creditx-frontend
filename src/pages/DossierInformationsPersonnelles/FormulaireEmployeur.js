@@ -1,9 +1,11 @@
 // src/pages/DossierINformationsPersonnelles/FormulaireEmployeur.js
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import { computeEtatPersonne, computeEtatGlobal } from "../../utils/etatInfos";
+
 
 
 // Calcule l'état global de la section "Informations personnelles" à partir de la liste des employeurs
@@ -13,6 +15,14 @@ const computeEtatInfosFromEmpList = (employeurs = []) => {
   const allComplete = employeurs.every((e) => e?.complet === true && e?.bloquant !== true);
   return allComplete ? "Terminé" : "Action requise";
 };
+
+// Retourne une chaîne affichable, que l'adresse soit un objet (AddressInput) ou une simple string
+const getFormattedAddress = (a) => {
+  if (!a) return "";
+  if (typeof a === "string") return a;
+  return a.formatted || a.formatted_address || a.description || a.label || "";
+};
+
 
 
 /**
@@ -68,6 +78,8 @@ export default function FormulaireEmployeur() {
   // Détails employeur salariés (communs aux deux branches salarié)
   const [nomEmployeur, setNomEmployeur] = useState("");
   const [adresseEmployeur, setAdresseEmployeur] = useState(""); // Placeholder texte (l’API Google sera branchée ensuite)
+  const [profession, setProfession] = useState("");
+
 
   // Revenu brut (base hors bonus)
   const [revenuMode, setRevenuMode] = useState("annuel"); // "annuel" | "mensuel"
@@ -80,9 +92,99 @@ export default function FormulaireEmployeur() {
   const [bonusY1, setBonusY1] = useState("");
   const [bonusY2, setBonusY2] = useState("");
 
+
+// --- Validation visuelle des champs requis ---
+const [submitAttempted, setSubmitAttempted] = useState(false);
+const adresseEmployeurIsMissing = !getFormattedAddress(adresseEmployeur);
+const adresseIndepIsMissing = !getFormattedAddress(adresseIndep);
+
+
+
+
+  const location = useLocation();
+
+// Effet COMBINÉ : priorité à selectedAddress, sinon draft, puis nettoyage
+useEffect(() => {
+  const st = location.state || {};
+  const sel = st.selectedAddress;           // adresse renvoyée par AdresseEmployeur
+  const fromType = st.fromType || null;     // "salarie" | "independant" | null
+  const draft = st.draft || null;           // brouillon de retour
+
+  // Normalise une adresse en objet "safe" { formatted, ... }
+const normalizeAddress = (a) => {
+  if (!a) return null;
+  if (typeof a === "string") return { formatted: a };
+  // a est un objet: on garantit .formatted
+  const formatted =
+    a.formatted || a.formatted_address || a.description || a.label || "";
+  return { ...a, formatted };
+};
+
+
+  // 1) Applique le DRAFT pour tout (SAUF les adresses ; on les gère plus bas)
+  if (draft) {
+    setStatutEntreprise(draft.statutEntreprise ?? null);
+
+    // Indépendant (sans toucher aux adresses ici)
+    setIndep36Plus(draft.indep36Plus ?? null);
+    setRaisonSociale(draft.raisonSociale ?? "");
+    setIndepRevenuN1(draft.indepRevenuN1 ?? "");
+    setIndepRevenuN2(draft.indepRevenuN2 ?? "");
+    setIndepRevenuN3(draft.indepRevenuN3 ?? "");
+
+    // Salarié (sans toucher aux adresses ici)
+    setSalaireIrreg(draft.salaireIrreg ?? null);
+    setSalaireAncienneteOK(draft.salaireAncienneteOK ?? null);
+    setNomEmployeur(draft.nomEmployeur ?? "");
+    setProfession(draft.profession ?? "");
+
+    // Revenu & bonus
+    setRevenuMode(draft.revenuMode ?? "annuel");
+    setFrequenceMensuelle(draft.frequenceMensuelle ?? 12);
+    setRevenuMontant(draft.revenuMontant ?? "");
+    setBonusActive(draft.bonusActive ?? null);
+    setBonusY(draft.bonusY ?? "");
+    setBonusY1(draft.bonusY1 ?? "");
+    setBonusY2(draft.bonusY2 ?? "");
+  }
+
+  // 2) Pose l’ADRESSE avec priorité à selectedAddress (si présent)
+  const effectiveType = fromType || draft?.statutEntreprise || statutEntreprise;
+
+  if (sel) {
+    if (effectiveType === "salarie") {
+      setAdresseEmployeur(normalizeAddress(sel));
+    } else if (effectiveType === "independant") {
+      setAdresseIndep(normalizeAddress(sel));
+    } else {
+    // fallback si pas d'info : on se base sur l'état courant
+    if (statutEntreprise === "salarie") setAdresseEmployeur(normalizeAddress(sel));
+    if (statutEntreprise === "independant") setAdresseIndep(normalizeAddress(sel));
+    }
+  } else {
+    // pas de selectedAddress => on peut appliquer les adresses du draft
+    if (draft) {
+      if (draft.adresseEmployeur !== undefined) setAdresseEmployeur(normalizeAddress(draft.adresseEmployeur ?? ""));
+      if (draft.adresseIndep !== undefined) setAdresseIndep(normalizeAddress(draft.adresseIndep ?? ""));
+    }
+  }
+
+  // 3) Nettoyage : si on a bien appliqué une adresse, on PURGE tout l'état
+if (sel) {
+  navigate(location.pathname, { replace: true, state: {} });
+}
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [location.key]); // une fois par navigation vers cette page
+
+
+
+
+
   // -------- Fetch dossier & employeur --------
   useEffect(() => {
     (async () => {
+      const hasSel = !!(location.state && location.state.selectedAddress);
       const ref = doc(db, "demandes", id);
       const snap = await getDoc(ref);
       if (snap.exists()) {
@@ -102,11 +204,8 @@ export default function FormulaireEmployeur() {
 
           if (currentEmp.statutEntreprise === "independant") {
             setRaisonSociale(currentEmp.nom || currentEmp.raisonSociale || ""); // NEW
-            setAdresseIndep(
-            typeof currentEmp.adresse === "string"
-                ? currentEmp.adresse
-                : currentEmp.adresse?.formatted || ""
-            );
+            if (!hasSel) setAdresseIndep(currentEmp.adresse || "");
+            setProfession(currentEmp.profession || ""); // ← ajout
             setIndep36Plus(currentEmp.indep36Plus ?? null);
             setIndepRevenuN1(
               currentEmp.indepRevenu?.[anneeCourante - 1]
@@ -129,11 +228,8 @@ export default function FormulaireEmployeur() {
             setSalaireIrreg(currentEmp.revenusIrreguliers ?? null);
             setSalaireAncienneteOK(currentEmp.salaireAncienneteOK ?? null);
             setNomEmployeur(currentEmp.nom || "");
-            setAdresseEmployeur(
-              typeof currentEmp.adresse === "string"
-                ? currentEmp.adresse
-                : currentEmp.adresse?.formatted || ""
-            );
+            if (!hasSel) setAdresseEmployeur(currentEmp.adresse || "");
+            setProfession(currentEmp.profession || "");
             setRevenuMode(currentEmp.revenuBase?.mode || "annuel");
             setFrequenceMensuelle(currentEmp.revenuBase?.frequenceMensuelle || 12);
             setRevenuMontant(
@@ -183,7 +279,9 @@ export default function FormulaireEmployeur() {
       if (indep36Plus === false) return true; // fin du formulaire (message)
       // sinon: raison sociale + 3 revenus requis
       if (!raisonSociale?.trim()) return false; // NEW
-      if (!adresseIndep?.trim()) return false; // NEW
+      if (!getFormattedAddress(adresseIndep)) return false;
+      if (!profession?.trim()) return false;
+
       return [indepRevenuN1, indepRevenuN2, indepRevenuN3].every((v) => parseCHF(v) !== null);
     }
 
@@ -194,7 +292,8 @@ export default function FormulaireEmployeur() {
 
     // champs requis communs
     if (!nomEmployeur?.trim()) return false;
-    if (!adresseEmployeur?.trim()) return false;
+    if (!getFormattedAddress(adresseEmployeur)) return false;
+    if (!profession?.trim()) return false;
     if (parseCHF(revenuMontant) === null) return false;
 
     return true;
@@ -204,6 +303,7 @@ export default function FormulaireEmployeur() {
     indep36Plus,
     raisonSociale,
     adresseIndep,
+    profession,
     indepRevenuN1,
     indepRevenuN2,
     indepRevenuN3,
@@ -213,6 +313,33 @@ export default function FormulaireEmployeur() {
     adresseEmployeur,
     revenuMontant,
   ]);
+
+
+
+  const buildDraft = () => ({
+  statutEntreprise,
+  // Indépendant
+  indep36Plus,
+  raisonSociale,
+  adresseIndep,
+  indepRevenuN1,
+  indepRevenuN2,
+  indepRevenuN3,
+  // Salarié
+  salaireIrreg,
+  salaireAncienneteOK,
+  nomEmployeur,
+  adresseEmployeur,
+  profession,
+  // Revenu & bonus
+  revenuMode,
+  frequenceMensuelle,
+  revenuMontant,
+  bonusActive,
+  bonusY,
+  bonusY1,
+  bonusY2,
+});
 
 // -------- Enregistrer --------
 const handleSave = async () => {
@@ -227,6 +354,12 @@ const handleSave = async () => {
 
   let payload = { statutAffichage: "", complet: false };
 
+
+
+
+
+
+  // --- Indépendant ---
   if (statutEntreprise === "independant") {
     payload = {
       ...payload,
@@ -234,7 +367,11 @@ const handleSave = async () => {
       statutAffichage: "Indépendant",
       indep36Plus: indep36Plus === true,
       nom: raisonSociale?.trim() || "",
-      adresse: adresseIndep?.trim() || "",
+      adresse:
+        typeof adresseIndep === "object" && adresseIndep
+            ? adresseIndep
+            : { formatted: getFormattedAddress(adresseIndep) },
+      profession: profession?.trim() || "",
       bloquant: indep36Plus === false, // critère bloquant si <36 mois
     };
 
@@ -249,13 +386,15 @@ const handleSave = async () => {
         payload.indepRevenu[anneeCourante - 2] > 0 &&
         payload.indepRevenu[anneeCourante - 3] > 0 &&
         !!payload.nom &&
-        !!payload.adresse;
+        !!getFormattedAddress(adresseIndep) &&
+        !!payload.profession;
     } else {
       // processus “terminé” mais bloquant
       payload.complet = true;
     }
   }
 
+  // --- Salarié ---
   if (statutEntreprise === "salarie") {
     const bonusObj = {};
     if (bonusActive) {
@@ -274,7 +413,11 @@ const handleSave = async () => {
       revenusIrreguliers: salaireIrreg === true,
       salaireAncienneteOK: salaireAncienneteOK === true,
       nom: nomEmployeur?.trim(),
-      adresse: adresseEmployeur?.trim(), // objet Google plus tard
+      adresse:
+        typeof adresseEmployeur === "object" && adresseEmployeur
+            ? adresseEmployeur
+            : { formatted: getFormattedAddress(adresseEmployeur) },
+      profession: profession?.trim() || "",
       revenuBase: {
         mode: revenuMode,
         frequenceMensuelle: revenuMode === "mensuel" ? frequenceMensuelle : null,
@@ -288,33 +431,36 @@ const handleSave = async () => {
     payload.complet =
       salaireAncienneteOK === false
         ? true // fin du formulaire (bloquant)
-        : !!(payload.nom && payload.adresse && payload.revenuBase.montant > 0);
+        : !!(payload.nom && getFormattedAddress(adresseEmployeur) && payload.profession && payload.revenuBase.montant > 0);
 
     // critère bloquant si ancienneté insuffisante
     payload.bloquant = salaireAncienneteOK === false;
   }
 
+  // --- Insert / Update dans la liste ---
   if (isCreate) {
     empList.push(payload);
   } else {
     empList[editIndex] = { ...(empList[editIndex] || {}), ...payload };
   }
 
-  // Met à jour la personne avec sa liste d’employeurs
-  pers[pIndex] = { ...(pers[pIndex] || {}), employeurs: empList };
+  // --- Met à jour la personne ---
+  const personneMaj = { ...(pers[pIndex] || {}), employeurs: empList };
 
-  // Calcule l’état global de la section pour CETTE personne
-  const newEtat = computeEtatInfosFromEmpList(empList);
+  // État pour CETTE personne (emplois + charges)
+  const etatPersonne = computeEtatPersonne(personneMaj);
+  pers[pIndex] = { ...personneMaj, etatInfos: etatPersonne };
 
-  // Écrit AUSSI l’état sur la personne (pour l’affichage dans DonneesPersonnelles)
-  pers[pIndex] = { ...pers[pIndex], etatInfos: newEtat };
+  // État GLOBAL dossier (agrège toutes les personnes)
+  const etatGlobal = computeEtatGlobal(pers);
 
-  // Met à jour Firestore : personnes + état global du dossier (onglet Informations personnelles)
-  await updateDoc(ref, { personnes: pers, etatInfos: newEtat });
+  // --- Persist ---
+  await updateDoc(ref, { personnes: pers, etatInfos: etatGlobal });
 
-  // Retour à la fiche "Informations" de la personne
+  // --- Retour ---
   navigate(`/informations/${pIndex}/${id}`);
 };
+
 
 
   // -------- UI helpers --------
@@ -426,17 +572,49 @@ const handleSave = async () => {
                     />
                   </div>
 
+                {/*NEW : Profession*/}
+                <div>
+                    <div className="text-sm text-gray-600 mb-2">Profession *</div>
+                    <input
+                        className="w-full rounded-xl border px-3 py-2"
+                        value={profession}
+                        onChange={(e) => setProfession(e.target.value)}
+                        placeholder="Ex: Ingénieur, Médecin, Dessinateur..."
+                    />
+                </div>
+
+
                   {/* NEW: Adresse */}
                 <div>
-                <div className="text-sm text-gray-600 mb-2">Adresse de la raison sociale *</div>
-                <input
-                    className="w-full rounded-xl border px-3 py-2"
-                    value={adresseIndep}
-                    onChange={(e) => setAdresseIndep(e.target.value)}
-                    placeholder="Adresse et Localité"
-                />
-                {/* Tu brancheras l’API Google Adresse ici plus tard */}
-                </div>
+                    <div className="text-sm text-gray-600 mb-2">Adresse de la raison sociale *</div>
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                        navigate(
+                            `/informations/${personneId}/${id}/employeurs/${employeurId || "nouveau"}/adresse`,
+                            { state: { fromType: "independant", draft: buildDraft(), initialAddress: adresseIndep } }
+                        )
+                        }
+                        className={`w-full rounded-xl border px-3 py-2 text-left hover:bg-gray-50 ${
+                        submitAttempted && adresseIndepIsMissing
+                            ? "border-red-400 ring-1 ring-red-200"
+                            : "border-gray-300"
+                        }`}
+                        aria-required="true"
+                        aria-invalid={submitAttempted && adresseIndepIsMissing}
+                    >
+                        {getFormattedAddress(adresseIndep) || "Choisir une adresse"}
+                    </button>
+
+                    {submitAttempted && adresseIndepIsMissing && (
+                        <div className="mt-1 text-xs text-red-600">
+                        L’adresse de la raison sociale est requise.
+                        </div>
+                    )}
+                    </div>
+
+
 
                   <div>
                     <div className="text-sm text-gray-600 mb-2">
@@ -535,16 +713,47 @@ const handleSave = async () => {
                     />
                   </div>
 
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">Adresse de l’employeur *</div>
+                {/*NEW : Profession*/}
+                <div>
+                    <div className="text-sm text-gray-600 mb-2">Profession *</div>
                     <input
-                      className="w-full rounded-xl border px-3 py-2"
-                      value={adresseEmployeur}
-                      onChange={(e) => setAdresseEmployeur(e.target.value)}
-                      placeholder="Adresse et Localité"
+                        className="w-full rounded-xl border px-3 py-2"
+                        value={profession}
+                        onChange={(e) => setProfession(e.target.value)}
+                        placeholder="Ex: Ingénieur, Médecin, Dessinateur..."
                     />
-                    {/* À remplacer par ton composant Adresse (Google) plus tard */}
-                  </div>
+                </div>
+
+                  <div>
+                        <div className="text-sm text-gray-600 mb-2">Adresse de l’employeur *</div>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                            navigate(
+                                `/informations/${personneId}/${id}/employeurs/${employeurId || "nouveau"}/adresse`,
+                                { state: { fromType: "salarie", draft: buildDraft(), initialAddress: adresseEmployeur } }
+                            )
+                            }
+                            className={`w-full rounded-xl border px-3 py-2 text-left hover:bg-gray-50 ${
+                            submitAttempted && adresseEmployeurIsMissing
+                                ? "border-red-400 ring-1 ring-red-200"
+                                : "border-gray-300"
+                            }`}
+                            aria-required="true"
+                            aria-invalid={submitAttempted && adresseEmployeurIsMissing}
+                        >
+                            {getFormattedAddress(adresseEmployeur) || "Choisir une adresse"}
+                        </button>
+
+                        {submitAttempted && adresseEmployeurIsMissing && (
+                            <div className="mt-1 text-xs text-red-600">
+                            L’adresse de l’employeur est requise.
+                            </div>
+                        )}
+                        </div>
+
+
 
                   {/* Revenu brut (hors bonus) */}
                   <div className="space-y-3">
@@ -658,22 +867,29 @@ const handleSave = async () => {
         <div className="mt-6 mb-10 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="tw px-4 py-2 rounded-xl border border-gray-300 text-gray-700"
+            className="px-4 py-2 rounded-xl border border-gray-300 text-gray-700"
             type="button"
           >
             Annuler
           </button>
 
           <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className={`tw px-4 py-2 rounded-xl text-white ${
-              canSave ? "bg-creditxblue hover:opacity-90" : "bg-gray-300 cursor-not-allowed"
+            onClick={async () => {
+                // Déclenche l’affichage des erreurs si le formulaire est incomplet
+                if (!canSave) {
+                setSubmitAttempted(true);
+                return;
+                }
+                await handleSave();
+            }}
+            className={`px-4 py-2 rounded-xl text-white ${
+                canSave ? "bg-creditxblue hover:opacity-90" : "bg-gray-300"
             }`}
             type="button"
-          >
+            >
             Enregistrer
-          </button>
+            </button>
+
         </div>
       </div>
     </div>

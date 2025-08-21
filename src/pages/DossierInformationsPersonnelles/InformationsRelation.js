@@ -40,11 +40,19 @@ export default function InformationsRelation() {
       const snap = await getDoc(ref);
       const data = snap.data();
       const personnes = [...(data.personnes || [])];
-      personnes[index] = {
-        ...personnes[index],
-        relationAvecDemandeurPrincipal: relation,
-      };
-      await updateDoc(ref, { personnes });
+      const p2 = { ...personnes[index] };
+        p2.relationAvecDemandeurPrincipal = relation;
+
+        // Si conjoint (mariage), forcer état civil + adresse identique au demandeur principal
+        if (relation === "Conjoint-e (mariage)" && personnes[0]) {
+          p2.etatCivil = "Marié(e)";
+          p2.adresse = { ...(personnes[0].adresse || {}) };
+          p2.adresseFormatted = personnes[0].adresseFormatted || "";
+        }
+
+        personnes[index] = p2;
+        await updateDoc(ref, { personnes });
+
       navigate(`/informations/${index}/${id}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la relation :", error);

@@ -6,6 +6,8 @@ import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import ModalMessage from "../../components/ModalMessage";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import { computeEtatPersonne, computeEtatGlobal } from "../../utils/etatInfos";
+
 
 
 const computeEtatInfosFromEmpList = (employeurs = []) => {
@@ -61,23 +63,28 @@ const handleSupprimerEmployeur = async () => {
   const p = personnes[index] || {};
   const employeurs = Array.isArray(p.employeurs) ? [...p.employeurs] : [];
 
-  // suppression
+  // suppression dans la liste locale
   employeurs.splice(empIndexToDelete, 1);
 
-  // recalc état de la section "Infos perso" pour CETTE personne
-  const newEtat = computeEtatInfosFromEmpList(employeurs);
+  // recompose la personne courante avec sa nouvelle liste d'employeurs
+  const personneMaj = { ...p, employeurs };
 
-  // écris la nouvelle liste + l'état sur la personne
-  personnes[index] = { ...p, employeurs, etatInfos: newEtat };
+  // calcule l'état de CETTE personne puis l'écrit dessus
+  const etatPersonne = computeEtatPersonne(personneMaj);
+  personnes[index] = { ...personneMaj, etatInfos: etatPersonne };
 
-  // mets aussi à jour l'état global du dossier (onglet "Informations personnelles")
-  await updateDoc(ref, { personnes, etatInfos: newEtat });
+  // calcule l'état GLOBAL du dossier (toutes les personnes)
+  const etatGlobal = computeEtatGlobal(personnes);
+
+  // persist: personnes + etatInfos global
+  await updateDoc(ref, { personnes, etatInfos: etatGlobal });
 
   // UI local
   setPersonne(personnes[index] || null);
   setModalConfirmEmp(false);
   setEmpIndexToDelete(null);
 };
+
 
 
 
@@ -101,25 +108,46 @@ const handleSupprimerEmployeur = async () => {
     return null;
   };
 
-  const renderLigne = (label, field, customValue, path) => {
-    const raw = customValue ?? personne?.[field];
-    const value = formatValue(raw);
-    const isEmpty = !value;
-    return (
-      <div
-        onClick={() => navigate(path)}
-        className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 cursor-pointer"
-      >
-        <div>
-          <p className="text-base lg:text-sm text-black">{label}</p>
-          <p className={`text-base lg:text-sm ${isEmpty ? "text-[#FF5C02]" : "text-gray-800"}`}>
-            {isEmpty ? "Non renseigné" : value}
-          </p>
-        </div>
-        <div className="text-gray-300">›</div>
+const renderLigne = (label, field, customValue, path) => {
+  const raw = customValue ?? personne?.[field];
+  const value = formatValue(raw);
+  const isEmpty = !value;
+  const disabled = !path;
+
+  return (
+    <div
+      onClick={() => !disabled && navigate(path)}
+      className={`flex justify-between items-center px-4 py-3 ${
+        disabled ? "cursor-not-allowed" : "hover:bg-gray-50 cursor-pointer"
+      }`}
+    >
+      <div>
+        {/* libellé toujours noir */}
+        <p className="text-base lg:text-sm text-black">{label}</p>
+
+        {/* valeur : grise si disabled */}
+        <p
+          className={`text-base lg:text-sm ${
+            isEmpty
+              ? "text-[#FF5C02]"
+              : disabled
+              ? "text-gray-400"
+              : "text-gray-800"
+          }`}
+        >
+          {isEmpty ? "Non renseigné" : value}
+        </p>
       </div>
-    );
-  };
+
+      {!disabled && <div className="text-gray-300">›</div>}
+    </div>
+  );
+};
+
+
+
+
+
 
   if (loading || !personne) return <div className="p-6 text-base lg:text-sm">Chargement...</div>;
 
@@ -132,6 +160,10 @@ const handleSupprimerEmployeur = async () => {
     personne.role === "secondaire"
       ? "Demandeur 2"
       : "Demandeur principal et administrateur";
+
+  const isConjointMariage =
+  personne?.relationAvecDemandeurPrincipal === "Conjoint-e (mariage)";
+
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex justify-center px-4 pt-6">
@@ -159,7 +191,12 @@ const handleSupprimerEmployeur = async () => {
           {renderLigne("Prénom", "prenom", null, `/informations/${index}/${id}/prenom`)}
           {renderLigne("Nom de famille", "nom", null, `/informations/${index}/${id}/nom`)}
           {renderLigne("Date de naissance", "dateNaissance", null, `/informations/${index}/${id}/naissance`)}
-          {renderLigne("État civil", "etatCivil", null, `/informations/${index}/${id}/etat-civil`)}
+          {renderLigne(
+            "État civil",
+            "etatCivil",
+            null,
+            isConjointMariage ? null : `/informations/${index}/${id}/etat-civil`
+          )}
 
           {/* Nouvelle ligne Nationalité */}
           {renderLigne("Nationalité", "nationalite", null, `/informations/${index}/${id}/nationalite`)}
@@ -169,7 +206,7 @@ const handleSupprimerEmployeur = async () => {
             "Adresse complète",
             "adresse",
             personne?.adresse ?? personne?.adresseFormatted,
-            `/informations/${index}/${id}/adresse`
+            isConjointMariage ? null : `/informations/${index}/${id}/adresse`
           )}
 
           {renderLigne("Degré de formation achevé", "formation", null, `/informations/${index}/${id}/formation`)}
@@ -217,21 +254,27 @@ const handleSupprimerEmployeur = async () => {
 <h2 className="text-base lg:text-sm text-gray-500 mt-8 mb-2">Employeur·s</h2>
 
 <div className="space-y-3 mb-10">
+
+
   {/* Ajouter — toujours visible */}
-  <div
-    onClick={() => navigate(`/informations/${index}/${id}/employeurs/nouveau`)}
-    className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-  >
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center">
-        <BusinessOutlinedIcon fontSize="small" className="text-creditxblue" />
-      </div>
-      <div>
-        <div className="text-base lg:text-sm font-medium">Ajouter</div>
-      </div>
+<div
+  onClick={() => navigate(`/informations/${index}/${id}/employeurs/nouveau`)}
+  className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+>
+  <div className="flex items-center gap-3">
+    <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center">
+      <BusinessOutlinedIcon fontSize="small" className="text-blue-600" />
     </div>
-    <div className="text-gray-300">›</div>
+    <div>
+      <div className="text-base lg:text-sm font-medium">Ajouter</div>
+      {(!Array.isArray(personne?.employeurs) || personne.employeurs.length === 0) && (
+        <div className="text-sm text-[#FF5C02]">Action requise</div>
+      )}
+    </div>
   </div>
+  <div className="text-gray-300">›</div>
+</div>
+
 
   {/* Liste des employeurs existants */}
   {Array.isArray(personne?.employeurs) &&

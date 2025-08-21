@@ -35,7 +35,9 @@ import InformationsNationalite from "./pages/DossierInformationsPersonnelles/Inf
 import InformationsEnfants from "./pages/DossierInformationsPersonnelles/InformationsEnfants";
 import InformationsRelation from "./pages/DossierInformationsPersonnelles/InformationsRelation";
 import FormulaireEmployeur from "./pages/DossierInformationsPersonnelles/FormulaireEmployeur";
+import AdresseEmployeur from "./pages/DossierInformationsPersonnelles/AdresseEmployeur";
 import InformationsCredits from "./pages/DossierInformationsPersonnelles/InformationsCredits";
+import BienHub from "./pages/DossierBien/BienHub";
 
 
 
@@ -90,7 +92,12 @@ function App() {
 <Route path="/informations/:personneId/:id/relation" element={<InformationsRelation />} />
 
 <Route path="/informations/:personneId/:id/employeurs/:employeurId" element={<FormulaireEmployeur />}/>
+<Route path="/informations/:personneId/:id/employeurs/:employeurId/adresse" element={<AdresseEmployeur />}/>
 <Route path="/informations/:personneId/:id/credits" element={<InformationsCredits />} />
+
+<Route path="/bien/:id" element={<BienHub />} />
+
+
 
 
 

@@ -14,7 +14,7 @@ export default function InformationsEnfants() {
 
   const [enfantsACharge, setEnfantsACharge] = useState(null);
   const [nombre, setNombre] = useState(1);
-  const [enfants, setEnfants] = useState([{ prenom: "", dateNaissance: "" }]);
+  const [enfants, setEnfants] = useState([{ prenom: "", dateNaissance: "", commun: false }]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,6 +24,32 @@ export default function InformationsEnfants() {
         const data = snap.data();
         const personne = data.personnes?.[index];
         if (personne) {
+          // ---- Pré-remplissage "enfants en commun" si personne secondaire = conjoint/partenaire ----
+if (
+  personne?.role === "secondaire" &&
+  (personne?.relationAvecDemandeurPrincipal === "Conjoint-e (mariage)" ||
+   personne?.relationAvecDemandeurPrincipal === "Partenaire (concubinage)") &&
+  (!Array.isArray(personne.enfants) || personne.enfants.length === 0) // seulement si pas encore saisi
+) {
+  const enfantsPrincipalBrut = Array.isArray(data.personnes?.[0]?.enfants)
+    ? data.personnes[0].enfants
+    : [];
+
+  if (enfantsPrincipalBrut.length > 0) {
+    // Marquer ces enfants comme "communs"
+    const enfantsCommuns = enfantsPrincipalBrut.map((e) => ({
+      prenom: e?.prenom || "",
+      dateNaissance: e?.dateNaissance || "",
+      commun: true, // <--- important
+    }));
+
+    setEnfantsACharge(true);
+    setEnfants(enfantsCommuns);
+    setNombre(enfantsCommuns.length);
+  }
+}
+// ---- fin pré-remplissage ----
+
           if (personne.enfantsACharge !== undefined) {
             setEnfantsACharge(personne.enfantsACharge);
           }
@@ -48,7 +74,7 @@ export default function InformationsEnfants() {
   setNombre(nb);
   const current = enfants.slice(0, nb);
   while (current.length < nb) {
-    current.push({ prenom: "", dateNaissance: "" });
+    current.push({ prenom: "", dateNaissance: "", commun: false });
   }
   setEnfants(current);
 };

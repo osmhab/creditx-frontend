@@ -391,7 +391,10 @@ export default function DashboardClient() {
                           if (key === "typeDemande") {
                             navigate("/type-demande");
                           } else if (key === "etatInfos") {
+    
                             navigate(`/informations-personnelles?id=${id}`);
+                            } else if (key === "etatBien") {
+                              navigate(`/bien/${id}`);
                           } else if (["etatIdentite", "etatDocuments", "etatResume"].includes(key)) {
                             let message = "";
                             if (key === "etatIdentite") {
