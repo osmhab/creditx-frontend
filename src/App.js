@@ -37,7 +37,12 @@ import InformationsRelation from "./pages/DossierInformationsPersonnelles/Inform
 import FormulaireEmployeur from "./pages/DossierInformationsPersonnelles/FormulaireEmployeur";
 import AdresseEmployeur from "./pages/DossierInformationsPersonnelles/AdresseEmployeur";
 import InformationsCredits from "./pages/DossierInformationsPersonnelles/InformationsCredits";
+
 import BienHub from "./pages/DossierBien/BienHub";
+import AdresseBien from "./pages/DossierBien/AdresseBien";
+import TypeUsageBien from "./pages/DossierBien/TypeUsageBien";
+import PrixFinancementBien from "./pages/DossierBien/PrixFinancementBien";
+import CaracteristiquesBien from "./pages/DossierBien/CaracteristiquesBien";
 
 
 
@@ -96,7 +101,10 @@ function App() {
 <Route path="/informations/:personneId/:id/credits" element={<InformationsCredits />} />
 
 <Route path="/bien/:id" element={<BienHub />} />
-
+<Route path="/bien/:id/adresse" element={<ProtectedRoute role="client"><AdresseBien /></ProtectedRoute>}/>
+<Route path="/bien/:id/type-usage" element={ <ProtectedRoute role="client"><TypeUsageBien /></ProtectedRoute>} />
+<Route path="/bien/:id/prix" element={<ProtectedRoute role="client"><PrixFinancementBien /></ProtectedRoute>} />
+<Route path="/bien/:id/caracteristiques" element={<ProtectedRoute role="client"><CaracteristiquesBien /></ProtectedRoute>} />
 
 
 

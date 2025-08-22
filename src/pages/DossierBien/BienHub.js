@@ -27,39 +27,36 @@ const formatValue = (val) => {
 function computeEtatBien(bien) {
   if (!bien) return "Action requise";
 
-  // Adresse OK
+  // Adresse (objet ou string compat)
   const adr = bien.adresse || bien.adresseFormatted;
-  const adrOK = !!formatValue(adr);
+  const adrOK = !!(adr && (typeof adr === "string" ? adr.trim() : true));
 
-  // Type & usage
+  // Type & usage (les deux usages sont valides)
   const typeOK = !!bien.typeBien;
-  const usageOK = bien.usage === "résidence_principale"; // CreditX usage propre only
+  const usageOK = !!bien.usage; // "résidence_principale" ou "rendement"
 
   // Prix & financement
   const prixOK = typeof bien.prixAchat === "number" && bien.prixAchat > 0;
 
-  // Caractéristiques minimales: au moins une info de surface OU (pièces + chambres)
+  // Caractéristiques minimales
   const carOK =
     (typeof bien.surfaceHabitable === "number" && bien.surfaceHabitable > 0) ||
     (typeof bien.surfacePonderee === "number" && bien.surfacePonderee > 0) ||
     ((typeof bien.nbPieces === "number" && bien.nbPieces > 0) &&
       (typeof bien.nbChambres === "number" && bien.nbChambres > 0));
 
-  // PPE si appartement avec PPE cochée
+  // PPE requis si appartement (ou si l’utilisateur l’a coché)
   const ppe = bien.ppe || {};
   const ppeRequise = bien.typeBien === "appartement" || ppe.estPPE === true;
-  const ppeOK = !ppeRequise || (isFilled(ppe.chargesMensuelles) && isFilled(ppe.nbLots));
+  const ppeOK = !ppeRequise || (ppe.chargesMensuelles != null && ppe.nbLots != null);
 
-  // Occupation & date
+  // Occupation & disponibilité
   const occ = bien.occupation || {};
-  const occOK = isFilled(occ.type);
+  const occOK = !!occ.type;
   const remiseOK = !!bien.remiseCles;
 
-  // Critères bloquants
-  if (bien.usage && bien.usage !== "résidence_principale") {
-    return "Critère bloquant";
-  }
-  // Si IA déjà passée et valeurBancaire << prixAchat (ex: < 85% du prix) => bloquant
+  // ⚠️ Plus de blocage sur l'usage : on accepte "rendement".
+  // On garde un blocage si l'IA (plus tard) trouve une valeur bancaire trop basse.
   if (
     bien.estimationCreditX?.valeurBancaire &&
     bien.prixAchat &&
@@ -74,6 +71,7 @@ function computeEtatBien(bien) {
   }
   return "Action requise";
 }
+
 
 export default function BienHub() {
   const navigate = useNavigate();
@@ -173,7 +171,7 @@ export default function BienHub() {
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex justify-center px-4 pt-6">
       <div className="w-full max-w-md">
-        <button onClick={() => navigate(-1)} className="text-2xl lg:text-xl mb-6">
+        <button onClick={() => navigate("/dashboard")} className="text-2xl lg:text-xl mb-6">
           ←
         </button>
 

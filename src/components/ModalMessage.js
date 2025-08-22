@@ -1,7 +1,21 @@
 // src/components/ModalMessage.js
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Slide, Typography, Box } from '@mui/material';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  IconButton,
+  Slide,
+  Typography,
+  Box,
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 const Transition = React.forwardRef((props, ref) => (
   <Slide direction="up" ref={ref} {...props} timeout={300} />
@@ -18,7 +32,39 @@ const ModalMessage = ({
   showCancel = true,
   onlyConfirm = false,
   showCloseIcon = false,
+  showIcon = true,
+  /** NEW: type d’icône ("knowledge" | "info" | "warning" | "success" | null) */
+  iconType = 'knowledge',
+  /** NEW: styles facultatifs pour l’icône (sx MUI) */
+  iconSx,
 }) => {
+  // Choix d’icône selon le contexte
+  let IconComp = null;
+  let defaultColor = '#0047FF'; // bleu CreditX par défaut
+
+  if (showIcon && iconType) {
+    switch (iconType) {
+      case 'knowledge':
+        IconComp = SchoolOutlinedIcon;
+        defaultColor = '#0047FF';
+        break;
+      case 'info':
+        IconComp = InfoOutlinedIcon;
+        defaultColor = '#3B82F6'; // bleu clair
+        break;
+      case 'warning':
+        IconComp = WarningAmberOutlinedIcon;
+        defaultColor = '#F59E0B'; // orange
+        break;
+      case 'success':
+        IconComp = CheckCircleOutlineIcon;
+        defaultColor = '#10B981'; // vert
+        break;
+      default:
+        IconComp = null;
+    }
+  }
+
   return (
     <Dialog
       open={open}
@@ -39,14 +85,16 @@ const ModalMessage = ({
         <IconButton
           aria-label="close"
           onClick={onClose}
-          sx={{
-            position: 'absolute',
-            right: 12,
-            top: 12,
-          }}
+          sx={{ position: 'absolute', right: 12, top: 12 }}
         >
           <CloseIcon />
         </IconButton>
+      )}
+
+      {IconComp && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 1 }}>
+          <IconComp sx={{ fontSize: 44, color: defaultColor, ...iconSx }} />
+        </Box>
       )}
 
       <DialogTitle sx={{ fontWeight: 600, fontSize: 22 }}>{title}</DialogTitle>
@@ -107,4 +155,3 @@ const ModalMessage = ({
 };
 
 export default ModalMessage;
-
