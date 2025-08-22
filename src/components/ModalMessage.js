@@ -34,7 +34,7 @@ const ModalMessage = ({
   showCloseIcon = false,
   showIcon = true,
   /** NEW: type d’icône ("knowledge" | "info" | "warning" | "success" | null) */
-  iconType = 'knowledge',
+  iconType = 'info',
   /** NEW: styles facultatifs pour l’icône (sx MUI) */
   iconSx,
 }) => {

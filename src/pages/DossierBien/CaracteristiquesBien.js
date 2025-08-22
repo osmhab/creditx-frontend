@@ -8,11 +8,8 @@ import SelecteurCreditX from "../../components/SelecteurCreditX";
 import ModalMessage from "../../components/ModalMessage";
 import BlocExemple from "../../components/BlocExemple";
 import { Typography } from "@mui/material";
-import { Box, Button, TextField, Tooltip, IconButton } from "@mui/material";
+import { Tooltip, IconButton } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-
-
-
 
 export default function CaracteristiquesBien() {
   const navigate = useNavigate();
@@ -34,11 +31,21 @@ export default function CaracteristiquesBien() {
   const [chauffage, setChauffage] = useState(null);
   const [anneeChauffage, setAnneeChauffage] = useState("");
 
+  // Nouveaux champs
+  const [amenagementCuisine, setAmenagementCuisine] = useState(null);
+  const [coutMoyenSdb, setCoutMoyenSdb] = useState(null);
+  const [sdbFamiliale, setSdbFamiliale] = useState("");
+  const [sdbStandard, setSdbStandard] = useState("");
+  const [wcInvite, setWcInvite] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [openModalPonderee, setOpenModalPonderee] = useState(false);
-
+  const [openModalEtages, setOpenModalEtages] = useState(false);
+  const [openModalSdbFamiliale, setOpenModalSdbFamiliale] = useState(false);
+  const [openModalSdbStandard, setOpenModalSdbStandard] = useState(false);
+  const [openModalWcInvite, setOpenModalWcInvite] = useState(false);
 
   // helpers
   const toIntOrNull = (v) => {
@@ -69,7 +76,7 @@ export default function CaracteristiquesBien() {
         setNbChambres(bien.nbChambres ?? "");
         setNbSdb(bien.nbSdb ?? "");
         setEtage(bien.etage ?? "");
-        setEtagesImmeuble(bien.etagesImmeuble ?? "");
+        setEtagesImmeuble(bien.etagesImmeuble ?? ""); // toujours affiché désormais
         setAscenseur(
           typeof bien.ascenseur === "boolean" ? bien.ascenseur : null
         );
@@ -83,6 +90,15 @@ export default function CaracteristiquesBien() {
         setEtatGeneral(bien.etatGeneral ?? null);
         setChauffage(bien.chauffage ?? null);
         setAnneeChauffage(bien.anneeChauffage ?? "");
+
+        // nouveaux champs
+        setAmenagementCuisine(bien.amenagementCuisine ?? null);
+        setCoutMoyenSdb(bien.coutMoyenSdb ?? null);
+
+        const details = bien.detailsSdb || {};
+        setSdbFamiliale(details.familiale ?? "");
+        setSdbStandard(details.standard ?? "");
+        setWcInvite(details.wcInvite ?? "");
       } catch (e) {
         console.error("Erreur chargement caractéristiques :", e);
       } finally {
@@ -120,13 +136,40 @@ export default function CaracteristiquesBien() {
     { value: false, label: "Non" },
   ];
 
+  const cuisineOptions = useMemo(
+    () => [
+      { value: "simple", label: "Simple (≤ 20’000)" },
+      { value: "standard", label: "Standard (20’000–40’000)" },
+      { value: "haut_gamme", label: "Haut de gamme (40’000–60’000)" },
+      { value: "premium", label: "Premium (> 60’000)" },
+    ],
+    []
+  );
+
+  const coutSdbOptions = useMemo(
+    () => [
+      { value: "simple", label: "Simple (≤ 10’000)" },
+      { value: "standard", label: "Standard (10’000–30’000)" },
+      { value: "haut_gamme", label: "Haut de gamme (30’000–50’000)" },
+      { value: "premium", label: "Premium (> 50’000)" },
+    ],
+    []
+  );
+
   // validation minimale (une surface OU (pièces + chambres))
   const baseOk =
     toFloatOrNull(surfaceHabitable) > 0 ||
     toFloatOrNull(surfacePonderee) > 0 ||
     (toFloatOrNull(nbPieces) > 0 && toIntOrNull(nbChambres) > 0);
 
-  const valid = baseOk; // le reste peut rester optionnel ici
+  const valid = baseOk; // le reste reste optionnel ici
+
+  const sdbDetailsTotal =
+    (toIntOrNull(sdbFamiliale) || 0) +
+    (toIntOrNull(sdbStandard) || 0) +
+    (toIntOrNull(wcInvite) || 0);
+  const nbSdbInt = toIntOrNull(nbSdb) || 0;
+  const sdbMismatch = nbSdbInt > 0 && sdbDetailsTotal !== nbSdbInt;
 
   const handleSave = async () => {
     if (!valid) return;
@@ -159,6 +202,15 @@ export default function CaracteristiquesBien() {
       bien.etatGeneral = etatGeneral || null;
       bien.chauffage = chauffage || null;
       bien.anneeChauffage = toIntOrNull(anneeChauffage);
+
+      // nouveaux champs
+      bien.amenagementCuisine = amenagementCuisine || null;
+      bien.coutMoyenSdb = coutMoyenSdb || null;
+      bien.detailsSdb = {
+        familiale: toIntOrNull(sdbFamiliale),
+        standard: toIntOrNull(sdbStandard),
+        wcInvite: toIntOrNull(wcInvite),
+      };
 
       // rappel : ensoleillement / orientation / standing restent null (évalués plus tard par IA)
 
@@ -205,31 +257,29 @@ export default function CaracteristiquesBien() {
               />
             </div>
             <div>
-  <label className="block text-sm mb-1">
-    <span className="flex items-center gap-1">
-      Surface pondérée (m²)
-      <Tooltip title="Qu’est‑ce que c’est ?">
-        <IconButton
-          size="small"
-          onClick={() => setOpenModalPonderee(true)}
-          sx={{ color: "#0047FF", p: 0.5 }}
-        >
-          <InfoOutlinedIcon fontSize="inherit" />
-        </IconButton>
-      </Tooltip>
-    </span>
-  </label>
-  <input
-    type="number"
-    min="0"
-    step="0.1"
-    value={surfacePonderee}
-    onChange={(e) => setSurfacePonderee(e.target.value)}
-    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
-  />
-</div>
-
-
+              <label className="block text-sm mb-1">
+                <span className="flex items-center gap-1">
+                  Surface pondérée (m²)
+                  <Tooltip title="Qu’est‑ce que c’est ?">
+                    <IconButton
+                      size="small"
+                      onClick={() => setOpenModalPonderee(true)}
+                      sx={{ color: "#0047FF", p: 0.5 }}
+                    >
+                      <InfoOutlinedIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                </span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={surfacePonderee}
+                onChange={(e) => setSurfacePonderee(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
@@ -268,45 +318,200 @@ export default function CaracteristiquesBien() {
             </div>
           </div>
 
-          {/* Spécifique appartements / immeubles */}
+          {/* Étage (appartement) + Nb étages immeuble (toujours) */}
           {isAppartement && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm mb-1">Étage</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={etage}
-                    onChange={(e) => setEtage(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Nb étages immeuble</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={etagesImmeuble}
-                    onChange={(e) => setEtagesImmeuble(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm mb-1">Étage</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={etage}
+                  onChange={(e) => setEtage(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">
+                  <span className="flex items-center gap-1">
+                    Nb étages immeuble
+                    <Tooltip title="Important">
+                      <IconButton
+                        size="small"
+                        onClick={() => setOpenModalEtages(true)}
+                        sx={{ color: "#0047FF", p: 0.5 }}
+                      >
+                        <InfoOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={etagesImmeuble}
+                  onChange={(e) => setEtagesImmeuble(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {!isAppartement && (
+            <div>
+              <label className="block text-sm mb-1">
+                <span className="flex items-center gap-1">
+                  Nb étages immeuble (même pour une maison)
+                  <Tooltip title="Important">
+                    <IconButton
+                      size="small"
+                      onClick={() => setOpenModalEtages(true)}
+                      sx={{ color: "#0047FF", p: 0.5 }}
+                    >
+                      <InfoOutlinedIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                </span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={etagesImmeuble}
+                onChange={(e) => setEtagesImmeuble(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+              />
+            </div>
+          )}
+
+          {isAppartement && (
+            <SelecteurCreditX
+              label="Ascenseur"
+              value={ascenseur}
+              onChange={setAscenseur}
+              options={boolOptions}
+              placeholder="Sélectionner"
+              searchable={false}
+              clearable
+            />
+          )}
+
+          {/* Aménagement de la cuisine */}
+          <SelecteurCreditX
+            label="Aménagement de la cuisine"
+            value={amenagementCuisine}
+            onChange={setAmenagementCuisine}
+            options={cuisineOptions}
+            placeholder="Sélectionner"
+            searchable={false}
+            clearable
+          />
+
+          {/* Coût moyen des salles de bain */}
+          <SelecteurCreditX
+            label="Coût moyen des salles de bain"
+            value={coutMoyenSdb}
+            onChange={setCoutMoyenSdb}
+            options={coutSdbOptions}
+            placeholder="Sélectionner"
+            searchable={false}
+            clearable
+          />
+
+          {/* Précision par salle de bain */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium">Précision par salle de bain</h2>
+              {sdbMismatch && (
+                <span className="text-[12px] text-red-600">
+                  La somme ({sdbDetailsTotal}) ne correspond pas au total des salles d’eau ({nbSdbInt}).
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm mb-1">
+                  <span className="flex items-center gap-1">
+                    Familiale
+                    <Tooltip title="Définition">
+                      <IconButton
+                        size="small"
+                        onClick={() => setOpenModalSdbFamiliale(true)}
+                        sx={{ color: "#0047FF", p: 0.5 }}
+                      >
+                        <InfoOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={sdbFamiliale}
+                  onChange={(e) => setSdbFamiliale(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                />
               </div>
 
-              <SelecteurCreditX
-                label="Ascenseur"
-                value={ascenseur}
-                onChange={setAscenseur}
-                options={boolOptions}
-                placeholder="Sélectionner"
-                searchable={false}
-                clearable
-              />
-            </>
-          )}
+              <div>
+                <label className="block text-sm mb-1">
+                  <span className="flex items-center gap-1">
+                    Standard
+                    <Tooltip title="Définition">
+                      <IconButton
+                        size="small"
+                        onClick={() => setOpenModalSdbStandard(true)}
+                        sx={{ color: "#0047FF", p: 0.5 }}
+                      >
+                        <InfoOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={sdbStandard}
+                  onChange={(e) => setSdbStandard(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">
+                  <span className="flex items-center gap-1">
+                    WC invité
+                    <Tooltip title="Définition">
+                      <IconButton
+                        size="small"
+                        onClick={() => setOpenModalWcInvite(true)}
+                        sx={{ color: "#0047FF", p: 0.5 }}
+                      >
+                        <InfoOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={wcInvite}
+                  onChange={(e) => setWcInvite(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            </div>
+
+            <p className="text-[12px] text-gray-500">
+              Astuce : si vous n’êtes pas sûr, laissez ces champs vides ou renseignez-les plus tard.
+            </p>
+          </div>
 
           {/* Parkings */}
           <div className="grid grid-cols-3 gap-3">
@@ -355,6 +560,7 @@ export default function CaracteristiquesBien() {
             searchable={false}
             clearable
           />
+
           <div className="grid grid-cols-2 gap-3">
             <SelecteurCreditX
               label="Type de chauffage"
@@ -400,43 +606,114 @@ export default function CaracteristiquesBien() {
             </button>
           </div>
         </div>
+
+        {/* Modals */}
         <ModalMessage
-  open={openModalPonderee}
-  onClose={() => setOpenModalPonderee(false)}
-  onConfirm={() => setOpenModalPonderee(false)}
-  title="Surface pondérée — explication"
-  message={
-    <>
-      <Typography variant="body1" sx={{ mb: 2 }}>
-        La <strong>surface pondérée</strong> est une surface “corrigée” utilisée par
-        les banques et les experts pour l’évaluation. Elle additionne la surface
-        habitable avec certaines surfaces annexes en leur appliquant des coefficients
-        (ex. balcon, terrasse, cave, combles, etc.).
-      </Typography>
+          open={openModalPonderee}
+          onClose={() => setOpenModalPonderee(false)}
+          onConfirm={() => setOpenModalPonderee(false)}
+          title="Surface pondérée — explication"
+          message={
+            <>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                La <strong>surface pondérée</strong> est une surface “corrigée” utilisée par
+                les banques et les experts pour l’évaluation. Elle additionne la surface
+                habitable avec certaines surfaces annexes en leur appliquant des coefficients
+                (ex. balcon, terrasse, cave, combles, etc.).
+              </Typography>
 
-      <BlocExemple>
-        <em>Exemple :</em><br />
-        Habitable : 100 m²<br />
-        Balcon : 20 m² (coeff. 50 % → 10)<br />
-        Cave : 10 m² (coeff. 25 % → 2.5)<br />
-        <strong>Total pondéré ≈ 112.5 m²</strong>
-      </BlocExemple>
+              <BlocExemple>
+                <em>Exemple :</em><br />
+                Habitable : 100 m²<br />
+                Balcon : 20 m² (coeff. 50 % → 10)<br />
+                Cave : 10 m² (coeff. 25 % → 2.5)<br />
+                <strong>Total pondéré ≈ 112.5 m²</strong>
+              </BlocExemple>
 
-      <Typography
-        variant="caption"
-        sx={{ display: "block", color: "#6b7280", fontStyle: "italic" }}
-      >
-        Si vous ne l’avez pas, laissez le champ vide — nous pourrons l’estimer plus tard.
-      </Typography>
-    </>
-  }
-  confirmText="Compris"
-  showCancel={false}
-  onlyConfirm
-  showCloseIcon
-  iconType="knowledge"
-/>
+              <Typography
+                variant="caption"
+                sx={{ display: "block", color: "#6b7280", fontStyle: "italic" }}
+              >
+                Si vous ne l’avez pas, laissez le champ vide — nous pourrons l’estimer plus tard.
+              </Typography>
+            </>
+          }
+          confirmText="Compris"
+          showCancel={false}
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
+        />
 
+        <ModalMessage
+          open={openModalEtages}
+          onClose={() => setOpenModalEtages(false)}
+          onConfirm={() => setOpenModalEtages(false)}
+          title="Nombre d’étages de l’immeuble"
+          message={
+            <Typography variant="body1">
+              <strong>Ne pas compter le rez‑de‑chaussée.</strong> Indiquez uniquement les étages
+              supérieurs (ex. 1er, 2e, 3e...). Si l’immeuble a 4 niveaux au‑dessus du rez,
+              entrez <strong>4</strong>.
+            </Typography>
+          }
+          confirmText="Compris"
+          showCancel={false}
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
+        />
+
+        <ModalMessage
+          open={openModalSdbFamiliale}
+          onClose={() => setOpenModalSdbFamiliale(false)}
+          onConfirm={() => setOpenModalSdbFamiliale(false)}
+          title="Salle de bain — Familiale"
+          message={
+            <Typography variant="body1">
+              <strong>Familiale</strong> : baignoire <em>et</em> cabine de douche + lavabo + WC.
+            </Typography>
+          }
+          confirmText="Compris"
+          showCancel={false}
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
+        />
+
+        <ModalMessage
+          open={openModalSdbStandard}
+          onClose={() => setOpenModalSdbStandard(false)}
+          onConfirm={() => setOpenModalSdbStandard(false)}
+          title="Salle de bain — Standard"
+          message={
+            <Typography variant="body1">
+              <strong>Standard</strong> : baignoire <em>ou</em> douche + lavabo + WC.
+            </Typography>
+          }
+          confirmText="Compris"
+          showCancel={false}
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
+        />
+
+        <ModalMessage
+          open={openModalWcInvite}
+          onClose={() => setOpenModalWcInvite(false)}
+          onConfirm={() => setOpenModalWcInvite(false)}
+          title="WC pour invité"
+          message={
+            <Typography variant="body1">
+              <strong>WC invité</strong> : lavabo + WC (sans baignoire ni douche).
+            </Typography>
+          }
+          confirmText="Compris"
+          showCancel={false}
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
+        />
       </div>
     </div>
   );
