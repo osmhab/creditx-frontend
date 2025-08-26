@@ -99,6 +99,8 @@ export default function DashboardClient() {
   const getStatutAffichage = (key, value) => {
   const v = (value || "").toString();
 
+  
+
   // Cas "Demande" (typeDemande) : on affiche sa valeur telle quelle ou "Action requise"
   if (key === "typeDemande") {
     if (!v || v === "Non défini") {
@@ -118,6 +120,17 @@ export default function DashboardClient() {
   // Par défaut / Non défini
   return { label: "Action requise", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
 };
+
+
+// --- PRÉ-REQUIS POUR ACCÉDER À FINANCEMENT ---
+const demandeCourante = demandes[0] || {};
+const isTermine = (v) => ["terminé", "complété"].includes(String(v || "").toLowerCase());
+const hasTypeDemande =
+  Boolean(demandeCourante.typeDemande && demandeCourante.typeDemande !== "Non défini");
+const canOpenFinancement =
+  hasTypeDemande && isTermine(demandeCourante.etatInfos) && isTermine(demandeCourante.etatBien);
+
+
 
 
 
@@ -366,6 +379,7 @@ export default function DashboardClient() {
                     "typeDemande",
                     "etatInfos",
                     "etatBien",
+                    "etatFinancement",
                     "etatIdentite",
                     "etatDocuments",
                     "etatResume",
@@ -374,6 +388,7 @@ export default function DashboardClient() {
                       "Demande",
                       "Informations personnelles",
                       "Informations sur le bien",
+                      "Financement",
                       "Authentification d’identité",
                       "Pièces jointes",
                       "Résumé et acceptation",
@@ -382,60 +397,69 @@ export default function DashboardClient() {
                     const statutAffichage = getStatutAffichage(key, statut);
 
                     return (
-                      <div
-                        key={key}
-                        className="bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
-                        onClick={() => {
-                          const id = demandes[0]?.id;
+  <div
+    key={key}
+    className="bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
+    onClick={() => {
+  const id = demandes[0]?.id;
+  if (!id) return;
 
-                          if (key === "typeDemande") {
-                            navigate("/type-demande");
-                          } else if (key === "etatInfos") {
-    
-                            navigate(`/informations-personnelles?id=${id}`);
-                            } else if (key === "etatBien") {
-                              navigate(`/bien/${id}`);
-                          } else if (["etatIdentite", "etatDocuments", "etatResume"].includes(key)) {
-                            let message = "";
-                            if (key === "etatIdentite") {
-                              message =
-                                "Veuillez d’abord compléter les étapes précédentes avant d'accéder à l'authentification d’identité.";
-                            } else if (key === "etatDocuments") {
-                              message =
-                                "Vous devez remplir les informations personnelles et du bien avant d’accéder aux pièces jointes.";
-                            } else if (key === "etatResume") {
-                              message =
-                                "Le résumé et l’acceptation ne sont disponibles qu’après avoir rempli toutes les sections.";
-                            }
+  if (key === "typeDemande") {
+    navigate("/type-demande");
+  } else if (key === "etatInfos") {
+    navigate(`/informations-personnelles?id=${id}`);
+  } else if (key === "etatBien") {
+    navigate(`/bien/${id}`);
+  } else if (key === "etatFinancement") {
+    // 🔒 même logique que "Pièces jointes" : on bloque avec un modal si prérequis non remplis
+    if (!canOpenFinancement) {
+      setModalInfo({
+        open: true,
+        message:
+          "Pour accéder au Financement, complétez d’abord : Demande, Informations personnelles et Informations sur le bien.",
+      });
+      return;
+    }
+    navigate(`/financement/${id}`);
+  } else if (["etatIdentite", "etatDocuments", "etatResume"].includes(key)) {
+    let message = "";
+    if (key === "etatIdentite") {
+      message =
+        "Veuillez d’abord compléter les étapes précédentes avant d'accéder à l'authentification d’identité.";
+    } else if (key === "etatDocuments") {
+      message =
+        "Vous devez remplir les informations personnelles et du bien avant d’accéder aux pièces jointes.";
+    } else if (key === "etatResume") {
+      message =
+        "Le résumé et l’acceptation ne sont disponibles qu’après avoir rempli toutes les sections.";
+    }
+    setModalInfo({ open: true, message });
+  }
+}}
 
-                            setModalInfo({
-                              open: true,
-                              message,
-                            });
-                          }
-                        }}
-                      >
-                        <div>
-                          <p className="font-semibold text-base lg:text-sm leading-tight">
-                            {labels[i]}
-                          </p>
+  >
+    <div>
+      <p className="font-semibold text-base lg:text-sm leading-tight">
+        {labels[i]}
+      </p>
 
-                          <div className="flex items-center gap-2 mt-[2px]">
-                            <p
-                              className={`text-sm lg:text-xs ${statutAffichage.fontWeight}`}
-                              style={{ color: statutAffichage.color }}
-                            >
-                              {statutAffichage.label}
-                            </p>
-                            {statutAffichage.icon && (
-                              <span className="text-sm">{statutAffichage.icon}</span>
-                            )}
-                          </div>
-                        </div>
+      <div className="flex items-center gap-2 mt-[2px]">
+        <p
+          className={`text-sm lg:text-xs ${statutAffichage.fontWeight}`}
+          style={{ color: statutAffichage.color }}
+        >
+          {statutAffichage.label}
+        </p>
+        {statutAffichage.icon && (
+          <span className="text-sm">{statutAffichage.icon}</span>
+        )}
+      </div>
+    </div>
 
-                        <ArrowForwardIosIcon fontSize="small" className="text-gray-300" />
-                      </div>
-                    );
+    <ArrowForwardIosIcon fontSize="small" className="text-gray-300" />
+  </div>
+);
+
                   })}
                 </div>
               </div>

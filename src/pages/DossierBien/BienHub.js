@@ -23,40 +23,33 @@ const formatValue = (val) => {
   return null;
 };
 
-// Règle de complétude côté Bien (brouillon robuste, calqué sur ce qu’on a défini ensemble)
+// Règle de complétude côté Bien
 function computeEtatBien(bien) {
   if (!bien) return "Action requise";
 
-  // Adresse (objet ou string compat)
   const adr = bien.adresse || bien.adresseFormatted;
   const adrOK = !!(adr && (typeof adr === "string" ? adr.trim() : true));
-
-  // Type & usage (les deux usages sont valides)
   const typeOK = !!bien.typeBien;
-  const usageOK = !!bien.usage; // "résidence_principale" ou "rendement"
-
-  // Prix & financement
+  const usageOK = !!bien.usage;
   const prixOK = typeof bien.prixAchat === "number" && bien.prixAchat > 0;
 
-  // Caractéristiques minimales
   const carOK =
     (typeof bien.surfaceHabitable === "number" && bien.surfaceHabitable > 0) ||
     (typeof bien.surfacePonderee === "number" && bien.surfacePonderee > 0) ||
     ((typeof bien.nbPieces === "number" && bien.nbPieces > 0) &&
       (typeof bien.nbChambres === "number" && bien.nbChambres > 0));
 
-  // PPE requis si appartement (ou si l’utilisateur l’a coché)
   const ppe = bien.ppe || {};
-  const ppeRequise = bien.typeBien === "appartement" || ppe.estPPE === true;
+  const isApp = String(bien.typeBien || "").toLowerCase().includes("appartement");
+  const ppeRequise = ppe.estPPE === false ? false : (isApp || ppe.estPPE === true);
+
+
   const ppeOK = !ppeRequise || (ppe.chargesMensuelles != null && ppe.nbLots != null);
 
-  // Occupation & disponibilité
   const occ = bien.occupation || {};
   const occOK = !!occ.type;
   const remiseOK = !!bien.remiseCles;
 
-  // ⚠️ Plus de blocage sur l'usage : on accepte "rendement".
-  // On garde un blocage si l'IA (plus tard) trouve une valeur bancaire trop basse.
   if (
     bien.estimationCreditX?.valeurBancaire &&
     bien.prixAchat &&
@@ -65,17 +58,15 @@ function computeEtatBien(bien) {
     return "Critère bloquant";
   }
 
-  // Terminé si tout l’essentiel est rempli
   if (adrOK && typeOK && usageOK && prixOK && carOK && ppeOK && occOK && remiseOK) {
     return "Terminé";
   }
   return "Action requise";
 }
 
-
 export default function BienHub() {
   const navigate = useNavigate();
-  const { id } = useParams(); // id = id de la demande
+  const { id } = useParams();
   const [demande, setDemande] = useState(null);
   const [loading, setLoading] = useState(true);
   const bien = useMemo(() => demande?.bien || {}, [demande]);
@@ -93,12 +84,10 @@ export default function BienHub() {
         if (mounted) setLoading(false);
       }
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [id]);
 
-  // Recalcule et pousse etatBien si nécessaire
+  // Recalcul état
   useEffect(() => {
     if (!demande) return;
     const nextEtat = computeEtatBien(bien);
@@ -143,37 +132,90 @@ export default function BienHub() {
     );
   };
 
-  // Valeurs affichées (résumé court sur la ligne)
-  const ligneAdresse = bien.adresse || bien.adresseFormatted || null;
-  const ligneTypeUsage = [
-    bien.typeBien ? String(bien.typeBien).replaceAll("_", " ") : null,
-    bien.usage ? String(bien.usage).replaceAll("_", " ") : null,
-  ]
-    .filter(Boolean)
-    .join(" • ");
-  const lignePrix = isFilled(bien.prixAchat) ? `${Number(bien.prixAchat).toLocaleString("fr-CH")} CHF` : null;
-  const ligneCar = (() => {
+  // Résumés des blocs “Caractéristiques — …”
+  const resumeSurfaces = (() => {
     const arr = [];
     if (isFilled(bien.surfaceHabitable)) arr.push(`${bien.surfaceHabitable} m² hab.`);
-    else if (isFilled(bien.surfacePonderee)) arr.push(`${bien.surfacePonderee} m² pond.`);
+    else if (isFilled(bien.surfaceHabitableBrute)) arr.push(`${bien.surfaceHabitableBrute} m² brute`);
+    else if (isFilled(bien.surfaceHabitableNette)) arr.push(`${bien.surfaceHabitableNette} m² nette`);
+    if (isFilled(bien.surfacePonderee)) arr.push(`${bien.surfacePonderee} m² pond.`);
     if (isFilled(bien.nbPieces)) arr.push(`${bien.nbPieces} pces`);
     if (isFilled(bien.nbChambres)) arr.push(`${bien.nbChambres} ch.`);
     return arr.join(" • ") || null;
   })();
-  const lignePPE =
-    bien.ppe?.estPPE === true
-      ? `Charges: ${isFilled(bien.ppe?.chargesMensuelles) ? bien.ppe.chargesMensuelles + " CHF/mois" : "—"}`
-      : "Non applicable";
-  const ligneOcc = bien.occupation?.type
-    ? `${String(bien.occupation.type)}${bien.remiseCles ? " • " + bien.remiseCles : ""}`
-    : null;
+
+  const resumeSdbCuisine = (() => {
+    const details = bien.detailsSdb || {};
+    const total = Number(bien.nbSdb) || 0;
+    const parts = [];
+    if (total) parts.push(`SDB ${total}`);
+    const f = details.familiale || 0, s = details.standard || 0, w = details.wcInvite || 0;
+    if (f || s || w) parts.push(`(F${f}/S${s}/WC${w})`);
+    if (bien.coutMoyenSdb) parts.push(`Coût ${String(bien.coutMoyenSdb).replaceAll("_"," ")}`);
+    if (bien.amenagementCuisine) parts.push(`Cuisine ${String(bien.amenagementCuisine).replaceAll("_"," ")}`);
+    return parts.join(" • ") || null;
+  })();
+
+  const resumeEtagesPk = (() => {
+  const isAppLocal = String(bien.typeBien || "").toLowerCase().includes("appartement");
+  const parts = [];
+  if (isAppLocal && isFilled(bien.etage)) parts.push(`Étage ${bien.etage}`);
+  if (isFilled(bien.etagesImmeuble)) parts.push(`${bien.etagesImmeuble} étages immeuble`);
+  if (isAppLocal && typeof bien.ascenseur === "boolean")
+    parts.push(`Ascenseur ${bien.ascenseur ? "oui" : "non"}`);
+  const pi = bien.parkings?.interieur ?? null;
+  const pe = bien.parkings?.exterieur ?? null;
+  if (isFilled(pi) || isFilled(pe)) parts.push(`Pk int ${pi || 0} / ext ${pe || 0}`);
+  return parts.join(" • ") || null;
+})();
+
+
+  const resumeEtatEnergie = (() => {
+    const parts = [];
+    if (bien.etatGeneral) parts.push(`État ${String(bien.etatGeneral).replaceAll("_"," ")}`);
+    if (bien.chauffage) parts.push(`Chauffage ${String(bien.chauffage).replaceAll("_"," ")}`);
+    if (isFilled(bien.anneeChauffage)) parts.push(`Année ${bien.anneeChauffage}`);
+    if (typeof bien.panneauxSolaires === "boolean") parts.push(`Solaires ${bien.panneauxSolaires ? "oui" : "non"}`);
+    if (isFilled(bien.garagesBox)) parts.push(`Garage/box ${bien.garagesBox}`);
+    if (isFilled(bien.surfaceTerrain)) parts.push(`Terrain ${bien.surfaceTerrain} m²`);
+    return parts.join(" • ") || null;
+  })();
+
+  // Valeurs “générales” déjà présentes
+
+  const isAppartement = String(bien.typeBien || "").toLowerCase().includes("appartement");
+  const showPPE = (isAppartement || bien.ppe?.estPPE === true) && bien.ppe?.estPPE !== false;
+
+  const ligneAdresse = bien.adresse || bien.adresseFormatted || null;
+  const ligneTypeUsage = [
+    bien.typeBien ? String(bien.typeBien).replaceAll("_", " ") : null,
+    bien.usage ? String(bien.usage).replaceAll("_", " ") : null,
+  ].filter(Boolean).join(" • ");
+  const lignePrix = isFilled(bien.prixAchat) ? `${Number(bien.prixAchat).toLocaleString("fr-CH")} CHF` : null;
+  const lignePPE = (() => {
+  const ppe = bien.ppe || {};
+  if (ppe?.estPPE === false) return "PPE : Non";
+  const parts = [];
+  if (isFilled(ppe.chargesMensuelles)) {
+    parts.push(`Charges: ${Number(ppe.chargesMensuelles).toLocaleString("fr-CH")} CHF/mois`);
+  }
+  if (isFilled(ppe.nbLots)) {
+    parts.push(`Lots: ${ppe.nbLots}`);
+  }
+  return parts.join(" • ") || "Non renseigné";
+})();
+
+
+const occLabel = (t) => String(t).replaceAll("_", " ");
+const ligneOcc = bien.occupation?.type
+  ? `${occLabel(bien.occupation.type)}${bien.remiseCles ? " • " + bien.remiseCles : ""}`
+  : null;
+
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex justify-center px-4 pt-6">
       <div className="w-full max-w-md">
-        <button onClick={() => navigate("/dashboard")} className="text-2xl lg:text-xl mb-6">
-          ←
-        </button>
+        <button onClick={() => navigate("/dashboard")} className="text-2xl lg:text-xl mb-6">←</button>
 
         <h1 className="text-2xl lg:text-xl font-bold">Informations sur le bien</h1>
         <p className="text-base lg:text-sm text-gray-500 mb-6">
@@ -184,12 +226,18 @@ export default function BienHub() {
           {renderLigne("Adresse du bien", ligneAdresse, `/bien/${id}/adresse`)}
           {renderLigne("Type & usage", ligneTypeUsage || null, `/bien/${id}/type-usage`)}
           {renderLigne("Prix & financement", lignePrix || null, `/bien/${id}/prix`)}
-          {renderLigne("Caractéristiques principales", ligneCar || null, `/bien/${id}/caracteristiques`)}
+
+          {/* --- Nouveau : 4 sous-lignes au même style pour les caractéristiques --- */}
+          {renderLigne("Caractéristiques — Surfaces & pièces", resumeSurfaces, `/bien/${id}/caracteristiques/surfaces`)}
+          {renderLigne("Caractéristiques — SDB & cuisine", resumeSdbCuisine, `/bien/${id}/caracteristiques/sdb-cuisine`)}
+          {renderLigne("Caractéristiques — Étages & parkings", resumeEtagesPk, `/bien/${id}/caracteristiques/etages-parkings`)}
+          {renderLigne("Caractéristiques — État, chauffage & énergie", resumeEtatEnergie, `/bien/${id}/caracteristiques/etat-chauffage-energie`)}
+
           {renderLigne("Copropriété (PPE)", lignePPE, `/bien/${id}/ppe`)}
           {renderLigne("Occupation & disponibilité", ligneOcc || null, `/bien/${id}/occupation`)}
         </div>
 
-        {/* Badge d’état en pied de page */}
+        {/* Badge d’état */}
         <div className="mt-6 text-sm">
           {demande.etatBien === "Terminé" && (
             <span className="px-3 py-1 rounded-full bg-green-100 text-green-700">Terminé</span>
@@ -202,7 +250,6 @@ export default function BienHub() {
           )}
         </div>
 
-        {/* CTA vers la prochaine étape “Pièces jointes” quand Terminé */}
         {demande.etatBien === "Terminé" && (
           <button
             onClick={() => navigate(`/pieces-jointes/${id}`)}

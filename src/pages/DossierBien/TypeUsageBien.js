@@ -158,7 +158,7 @@ export default function TypeUsageBien() {
             options={sousTypeOptions}
             placeholder="Sélectionner un sous-type"
             disabled={!typeBien}
-            searchable
+            searchable={false}
             clearable
           />
 

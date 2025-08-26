@@ -33,10 +33,16 @@ const ModalMessage = ({
   onlyConfirm = false,
   showCloseIcon = false,
   showIcon = true,
-  /** NEW: type d’icône ("knowledge" | "info" | "warning" | "success" | null) */
+  // type d’icône ("knowledge" | "info" | "warning" | "success" | null)
   iconType = 'info',
-  /** NEW: styles facultatifs pour l’icône (sx MUI) */
+  // styles facultatifs pour l’icône (sx MUI)
   iconSx,
+
+  // 🔥 NOUVELLES PROPS D’OVERRIDE
+  fullWidth = true,
+  maxWidth = 'sm',               // 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false
+  paperSx = {},                  // styles injectés au Paper du Dialog
+  contentSx = {},               // styles injectés au DialogContent
 }) => {
   // Choix d’icône selon le contexte
   let IconComp = null;
@@ -65,19 +71,33 @@ const ModalMessage = ({
     }
   }
 
+  const renderMessage = () => {
+    // si message est un élément React, on l’affiche tel quel; sinon on wrap dans Typography
+    return React.isValidElement(message) ? (
+      message
+    ) : (
+      <Typography variant="body1" sx={{ mt: 1 }}>
+        {message}
+      </Typography>
+    );
+  };
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       TransitionComponent={Transition}
       keepMounted
-      maxWidth="xs"
-      fullWidth
+      scroll="paper"
+      fullWidth={fullWidth}
+      maxWidth={maxWidth}
       PaperProps={{
         sx: {
           borderRadius: '20px',
           padding: 3,
           textAlign: 'center',
+          maxHeight: '85vh',
+          ...paperSx, // ✅ overrides
         },
       }}
     >
@@ -97,12 +117,16 @@ const ModalMessage = ({
         </Box>
       )}
 
-      <DialogTitle sx={{ fontWeight: 600, fontSize: 22 }}>{title}</DialogTitle>
+      {title && <DialogTitle sx={{ fontWeight: 600, fontSize: 22 }}>{title}</DialogTitle>}
 
-      <DialogContent>
-        <Typography variant="body1" sx={{ mt: 1 }}>
-          {message}
-        </Typography>
+      <DialogContent
+        dividers
+        sx={{
+          pt: 1.5,
+          ...contentSx, // ✅ overrides
+        }}
+      >
+        {renderMessage()}
       </DialogContent>
 
       <DialogActions

@@ -43,7 +43,15 @@ import AdresseBien from "./pages/DossierBien/AdresseBien";
 import TypeUsageBien from "./pages/DossierBien/TypeUsageBien";
 import PrixFinancementBien from "./pages/DossierBien/PrixFinancementBien";
 import CaracteristiquesBien from "./pages/DossierBien/CaracteristiquesBien";
+import CaracteristiquesSurfaces from "./pages/DossierBien/CaracteristiquesSurfaces";
+import CaracteristiquesSdbCuisine from "./pages/DossierBien/CaracteristiquesSdbCuisine";
+import CaracteristiquesEtagesParkings from "./pages/DossierBien/CaracteristiquesEtagesParkings";
+import CaracteristiquesEtatChauffageEnergie from "./pages/DossierBien/CaracteristiquesEtatChauffageEnergie";
+import CoproprietePPE from "./pages/DossierBien/CoproprietePPE";
+import OccupationDisponibilite from "./pages/DossierBien/OccupationDisponibilite";
 
+import FinancementHub from "./pages/DossierFinancement/FinancementHub";
+import FinancementApport from "./pages/DossierFinancement/FinancementApport";
 
 
 
@@ -105,8 +113,15 @@ function App() {
 <Route path="/bien/:id/type-usage" element={ <ProtectedRoute role="client"><TypeUsageBien /></ProtectedRoute>} />
 <Route path="/bien/:id/prix" element={<ProtectedRoute role="client"><PrixFinancementBien /></ProtectedRoute>} />
 <Route path="/bien/:id/caracteristiques" element={<ProtectedRoute role="client"><CaracteristiquesBien /></ProtectedRoute>} />
+<Route path="/bien/:id/caracteristiques/surfaces" element={<ProtectedRoute role="client"><CaracteristiquesSurfaces /></ProtectedRoute>} />
+<Route path="/bien/:id/caracteristiques/sdb-cuisine" element={<ProtectedRoute role="client"><CaracteristiquesSdbCuisine /></ProtectedRoute>} />
+<Route path="/bien/:id/caracteristiques/etages-parkings" element={<ProtectedRoute role="client"><CaracteristiquesEtagesParkings /></ProtectedRoute>} />
+<Route path="/bien/:id/caracteristiques/etat-chauffage-energie" element={<ProtectedRoute role="client"><CaracteristiquesEtatChauffageEnergie /></ProtectedRoute>} />
+<Route path="/bien/:id/ppe" element={<CoproprietePPE />} />
+<Route path="/bien/:id/occupation" element={<OccupationDisponibilite />} />
 
-
+<Route path="/financement/:id" element={<FinancementHub />} />
+<Route path="/financement/:id/apport" element={<FinancementApport />} />
 
 
 
