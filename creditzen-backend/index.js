@@ -3,136 +3,393 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { OpenAI } from "openai";
 import ocrRoute from "./routes/ocrRoute.js";
-import { getPromptParType } from './getPromptParType.js'; // ajuste le chemin si besoin
-
-
+import { getPromptParType } from "./getPromptParType.js"; // ajuste le chemin si besoin
 
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 5050;
 
-app.use(cors());
+app.use(cors({ origin: true })); // dev: autorise toutes origines
 app.use(express.json());
+
+// Logs simples de requêtes
+app.use((req, _res, next) => {
+  console.log("➡️", req.method, req.url);
+  next();
+});
+
+// Endpoint santé
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-app.post("/api/estimation", async (req, res) => {
+/* ----------------------------------------------------------------
+   1) NOUVELLE ROUTE SSE: progression réelle de l’estimation
+   Front: EventSource("/api/estimation/stream?formData=...json...")
+----------------------------------------------------------------- */
+app.get("/api/estimation/stream", async (req, res) => {
+  // Headers SSE
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+    "Access-Control-Allow-Origin": "*", // dev only
+  });
+  res.flushHeaders?.();
+
+  const send = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Fermer proprement si le client coupe
+  req.on("close", () => {
+    try {
+      res.end();
+    } catch (_) {}
+  });
+
   try {
-    const { formData: bien } = req.body;
+    const bien = JSON.parse(req.query.formData || "{}");
 
-    const variantes = [
-  "Estime les montants comme un expert hypothécaire suisse ayant accès aux ventes comparables.",
-  "Base ton estimation sur les données que tu reçois et sur ta connaissance du marché suisse.",
-  "Sois pragmatique et donne une estimation en CHF même si certaines données sont imprécises.",
-  "Réponds avec des valeurs numériques réalistes en te basant sur des cas similaires.",
-  "Ne refuse jamais d’estimer. Donne une valeur basée sur ton expérience simulée du marché immobilier suisse."
-];
+    // ------- Helpers -------
+    const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const boolFr = (b) => (typeof b === "boolean" ? (b ? "oui" : "non") : "non précisé");
+    const label = (v) => (v == null ? "non précisé" : String(v).replaceAll("_", " "));
+    const adr = bien.adresse || {};
+    const adrLine =
+      bien.adresseFormatted ||
+      [
+        adr.streetNumber && adr.route ? `${adr.streetNumber} ${adr.route}` : adr.route,
+        [adr.postalCode, adr.locality].filter(Boolean).join(" "),
+      ]
+        .filter(Boolean)
+        .join(", ") || "non spécifiée";
 
+    const ppe = bien.ppe || {};
+    const parks = bien.parkings || {};
+    const sdb = bien.detailsSdb || {};
 
-    const makePrompt = (variante) => {
-      return `
-Tu es un expert en financement hypothécaire en Suisse.
-Estime les deux valeurs suivantes à partir des données ci-dessous :
-1. La valeur de marché la plus réaliste en CHF
-2. La valeur qu'une banque pourrait reconnaître en CHF
+    // ------- Données remises au prompt -------
+    const donnees = {
+      typeBien: label(bien.typeBien),
+      sousTypeBien: label(bien.sousTypeBien),
+      usage: label(bien.usage),
+      adresse: adrLine,
+      npa: adr.postalCode || "non précisé",
+      localite: adr.locality || "non précisée",
 
-Voici les données :
-- Type de bien : ${bien.type || "non spécifié"}
-- Adresse : ${bien.adresseComplete || "non spécifiée"}
-- NPA Localité : ${bien.npaLocalite || "non précisé"}
-- Année de construction : ${bien.anneeConstruction || "non spécifiée"}
-- Année(s) de rénovation : ${bien.anneeRenovation || "non spécifiée"}
-- Type de construction : ${bien.typeConstruction || "non spécifié"}
-- État : ${bien.etat || "non spécifié"}
-- Surface habitable : ${bien.surfaceHabitable > 0 ? `${bien.surfaceHabitable} m²` : "non précisée"}
-- Surface terrain : ${bien.surfaceTerrain > 0 ? `${bien.surfaceTerrain} m²` : "non précisée"}
-- Surface jardin : ${bien.surfaceJardin > 0 ? `${bien.surfaceJardin} m²` : "non précisée"}
-- Surface terrasse/balcon : ${bien.surfaceBalcon > 0 ? `${bien.surfaceBalcon} m²` : "non précisée"}
-- Nombre de pièces : ${bien.nbPieces || "non précisé"}
-- Nombre de salles d’eau : ${bien.nbSallesEau || "non précisé"}
-- Type de chauffage : ${bien.chauffageType || "non spécifié"}
-- Distribution de chaleur : ${bien.chauffageDistribution || "non spécifiée"}
-- Places de parc intérieures : ${bien.placesInt || 0}
-- Places de parc extérieures : ${bien.placesExt || 0}
-- Orientation : non précisée
-- Photovoltaïque : non précisé
-- Solaires thermiques : non précisé
-- Certificats : non précisés
+      prixAchat: num(bien.prixAchat),
+      montantTravaux: num(bien.montantTravaux),
+      montantProjet: num(bien.montantProjet),
 
-${variante}
+      surfaces: {
+        habitableBrute: num(bien.surfaceHabitableBrute),
+        habitableNette: num(bien.surfaceHabitableNette),
+        habitable: num(bien.surfaceHabitable),
+        ponderee: num(bien.surfacePonderee),
+        terrain: num(bien.surfaceTerrain),
+        nbPieces: num(bien.nbPieces),
+        nbChambres: num(bien.nbChambres),
+      },
 
-Tu dois toujours répondre avec deux valeurs chiffrées, même si certaines données sont manquantes ou imprécises.
-Réponds uniquement avec ce format JSON strict, sans aucun mot autour, ni explication :
+      sdbCuisine: {
+        nbSdb: num(bien.nbSdb),
+        details: {
+          familiale: num(sdb.familiale),
+          standard: num(sdb.standard),
+          wcInvite: num(sdb.wcInvite),
+        },
+        amenagementCuisine: label(bien.amenagementCuisine),
+        coutMoyenSdb: label(bien.coutMoyenSdb),
+      },
 
+      etagesParkings: {
+        etage: num(bien.etage),
+        etagesImmeuble: num(bien.etagesImmeuble),
+        ascenseur: boolFr(bien.ascenseur),
+        parkingsInterieur: num(parks.interieur),
+        parkingsExterieur: num(parks.exterieur),
+        parkingsInclusDansPrix: boolFr(parks.inclusDansPrix),
+      },
 
-{
-  "valeurEstimeeMarche": <nombre>,
-  "valeurEstimeeBanque": <nombre>
-}
-`;
+      etatEnergie: {
+        etatGeneral: label(bien.etatGeneral),
+        chauffage: label(bien.chauffage),
+        anneeChauffage: num(bien.anneeChauffage),
+        panneauxSolaires: boolFr(bien.panneauxSolaires),
+        garagesBox: num(bien.garagesBox),
+      },
+
+      ppe: {
+        estPPE: ppe.estPPE === true ? "oui" : ppe.estPPE === false ? "non" : "non précisé",
+        chargesMensuelles: num(ppe.chargesMensuelles),
+        nbLots: num(ppe.nbLots),
+      },
     };
 
+    // Variantes pour stimuler l'estimation
+    const variantes = [
+      "Estime comme un expert hypothécaire suisse ayant accès à des ventes comparables.",
+      "Base-toi sur ces données et ta connaissance du marché suisse.",
+      "Sois pragmatique et rends une estimation en CHF même si des données sont imprécises.",
+      "Donne des valeurs numériques réalistes en te basant sur des cas similaires.",
+      "Ne refuse pas d’estimer : fournis des valeurs plausibles pour la Suisse.",
+    ];
+
+    const makePrompt = (variante) => `
+Tu es un expert en financement hypothécaire en Suisse.
+À partir des données ci-dessous, estime DEUX valeurs en CHF :
+1) la valeur de marché (réaliste)
+2) la valeur bancaire (valeur reconnue par une banque)
+
+Données saisies (utilise-les toutes quand c'est pertinent) :
+${JSON.stringify(donnees, null, 2)}
+
+Rappels :
+- ${variante}
+- Réponds STRICTEMENT en JSON (sans texte autour) au format :
+{
+  "valeurMarche": <nombre>,
+  "valeurBancaire": <nombre>
+}
+`;
+
+    const runs = 5;
     const estimations = [];
 
-    for (let i = 0; i < 5; i++) {
-      const variante = variantes[Math.floor(Math.random() * variantes.length)];
-      const prompt = makePrompt(variante);
+    for (let i = 0; i < runs; i++) {
+      // Progression avant l'appel (i terminé sur runs)
+      send("progress", { percent: Math.round((i / runs) * 100), step: i + 1, runs });
 
+      const prompt = makePrompt(variantes[Math.floor(Math.random() * variantes.length)]);
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-5", // si indispo, utilise "gpt-4o-mini" et enlève temperature
+        temperature: 1, // certains modèles exigent 1 (valeur par défaut)
         messages: [
           { role: "system", content: "Tu es un expert hypothécaire suisse." },
           { role: "user", content: prompt },
         ],
-        temperature: 0.3 + Math.random() * 0.2, // entre 0.3 et 0.5
       });
 
-      const content = completion.choices?.[0]?.message?.content;
-      console.log(`🔁 Estimation ${i + 1} :`, content);
+      const content = completion.choices?.[0]?.message?.content || "";
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]);
+          const valeurMarche = Number(parsed.valeurMarche ?? parsed.valeurEstimeeMarche);
+          const valeurBancaire = Number(parsed.valeurBancaire ?? parsed.valeurEstimeeBanque);
+          if (Number.isFinite(valeurMarche) && Number.isFinite(valeurBancaire)) {
+            estimations.push({ valeurMarche, valeurBancaire });
+          }
+        } catch {
+          // ignore parsing error et continuer
+        }
+      }
+
+      // Progression après l'appel (i+1 terminés sur runs)
+      send("progress", { percent: Math.round(((i + 1) / runs) * 100), step: i + 1, runs });
+    }
+
+    if (estimations.length === 0) {
+      send("error", { message: "Aucune estimation valide." });
+      return res.end();
+    }
+
+    const somme = estimations.reduce(
+      (acc, e) => ({
+        valeurMarche: acc.valeurMarche + e.valeurMarche,
+        valeurBancaire: acc.valeurBancaire + e.valeurBancaire,
+      }),
+      { valeurMarche: 0, valeurBancaire: 0 }
+    );
+
+    const valeurMarche = Math.round(somme.valeurMarche / estimations.length);
+    const valeurBancaire = Math.round(somme.valeurBancaire / estimations.length);
+
+    send("done", { valeurMarche, valeurBancaire, runs: estimations.length });
+    res.end();
+  } catch (err) {
+    console.error("SSE /api/estimation/stream error:", err);
+    try {
+      send("error", { message: err.response?.data || err.message || "Unknown error" });
+    } catch (_) {}
+    res.end();
+  }
+});
+
+/* ----------------------------------------------------------------
+   2) Route POST d’estimation (ancienne) — tu peux la garder
+----------------------------------------------------------------- */
+app.post("/api/estimation", async (req, res) => {
+  try {
+    const { formData: bien = {} } = req.body;
+
+    // (on réutilise les mêmes helpers que plus haut)
+    const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    const boolFr = (b) => (typeof b === "boolean" ? (b ? "oui" : "non") : "non précisé");
+    const label = (v) => (v == null ? "non précisé" : String(v).replaceAll("_", " "));
+    const adr = bien.adresse || {};
+    const adrLine =
+      bien.adresseFormatted ||
+      [
+        adr.streetNumber && adr.route ? `${adr.streetNumber} ${adr.route}` : adr.route,
+        [adr.postalCode, adr.locality].filter(Boolean).join(" "),
+      ]
+        .filter(Boolean)
+        .join(", ") || "non spécifiée";
+
+    const ppe = bien.ppe || {};
+    const parks = bien.parkings || {};
+    const sdb = bien.detailsSdb || {};
+
+    const donnees = {
+      typeBien: label(bien.typeBien),
+      sousTypeBien: label(bien.sousTypeBien),
+      usage: label(bien.usage),
+      adresse: adrLine,
+      npa: adr.postalCode || "non précisé",
+      localite: adr.locality || "non précisée",
+      prixAchat: num(bien.prixAchat),
+      montantTravaux: num(bien.montantTravaux),
+      montantProjet: num(bien.montantProjet),
+      surfaces: {
+        habitableBrute: num(bien.surfaceHabitableBrute),
+        habitableNette: num(bien.surfaceHabitableNette),
+        habitable: num(bien.surfaceHabitable),
+        ponderee: num(bien.surfacePonderee),
+        terrain: num(bien.surfaceTerrain),
+        nbPieces: num(bien.nbPieces),
+        nbChambres: num(bien.nbChambres),
+      },
+      sdbCuisine: {
+        nbSdb: num(bien.nbSdb),
+        details: {
+          familiale: num(sdb.familiale),
+          standard: num(sdb.standard),
+          wcInvite: num(sdb.wcInvite),
+        },
+        amenagementCuisine: label(bien.amenagementCuisine),
+        coutMoyenSdb: label(bien.coutMoyenSdb),
+      },
+      etagesParkings: {
+        etage: num(bien.etage),
+        etagesImmeuble: num(bien.etagesImmeuble),
+        ascenseur: boolFr(bien.ascenseur),
+        parkingsInterieur: num(parks.interieur),
+        parkingsExterieur: num(parks.exterieur),
+        parkingsInclusDansPrix: boolFr(parks.inclusDansPrix),
+      },
+      etatEnergie: {
+        etatGeneral: label(bien.etatGeneral),
+        chauffage: label(bien.chauffage),
+        anneeChauffage: num(bien.anneeChauffage),
+        panneauxSolaires: boolFr(bien.panneauxSolaires),
+        garagesBox: num(bien.garagesBox),
+      },
+      ppe: {
+        estPPE: ppe.estPPE === true ? "oui" : ppe.estPPE === false ? "non" : "non précisé",
+        chargesMensuelles: num(ppe.chargesMensuelles),
+        nbLots: num(ppe.nbLots),
+      },
+    };
+
+    const variantes = [
+      "Estime comme un expert hypothécaire suisse ayant accès à des ventes comparables.",
+      "Base-toi sur ces données et ta connaissance du marché suisse.",
+      "Sois pragmatique et rends une estimation en CHF même si des données sont imprécises.",
+      "Donne des valeurs numériques réalistes en te basant sur des cas similaires.",
+      "Ne refuse pas d’estimer : fournis des valeurs plausibles pour la Suisse.",
+    ];
+    const makePrompt = (variante) => `
+Tu es un expert en financement hypothécaire en Suisse.
+À partir des données ci-dessous, estime DEUX valeurs en CHF :
+1) la valeur de marché (réaliste)
+2) la valeur bancaire (valeur reconnue par une banque)
+
+Données saisies :
+${JSON.stringify(donnees, null, 2)}
+
+Rappels :
+- ${variante}
+- Réponds STRICTEMENT en JSON (sans texte autour) :
+{"valeurMarche": <nombre>, "valeurBancaire": <nombre>}
+`;
+
+    const runs = 5;
+    const estimations = [];
+
+    for (let i = 0; i < runs; i++) {
+      const prompt = makePrompt(variantes[Math.floor(Math.random() * variantes.length)]);
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5",
+        temperature: 1, // valeur par défaut requise par certains modèles
+        messages: [
+          { role: "system", content: "Tu es un expert hypothécaire suisse." },
+          { role: "user", content: prompt },
+        ],
+      });
+
+      const content = completion.choices?.[0]?.message?.content || "";
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match) continue;
 
       try {
-        const match = content.match(/\{[\s\S]*\}/);
-        if (match) {
-          const parsed = JSON.parse(match[0]);
-          estimations.push(parsed);
-        } else {
-          console.error(`❌ Aucun bloc JSON valide dans :`, content);
+        const parsed = JSON.parse(match[0]);
+        const valeurMarche = Number(parsed.valeurMarche ?? parsed.valeurEstimeeMarche);
+        const valeurBancaire = Number(parsed.valeurBancaire ?? parsed.valeurEstimeeBanque);
+        if (Number.isFinite(valeurMarche) && Number.isFinite(valeurBancaire)) {
+          estimations.push({ valeurMarche, valeurBancaire });
         }
-      } catch (err) {
-        console.error(`❌ Erreur parsing JSON estimation ${i + 1} :`, content);
+      } catch {
+        // ignore parsing error et continuer
       }
     }
 
     if (estimations.length === 0) {
-      throw new Error("Aucune estimation valide reçue.");
+      throw new Error("Aucune estimation valide.");
     }
 
-    const moyenne = estimations.reduce(
-      (acc, curr) => {
-        acc.valeurEstimeeMarche += curr.valeurEstimeeMarche;
-        acc.valeurEstimeeBanque += curr.valeurEstimeeBanque;
-        return acc;
-      },
-      { valeurEstimeeMarche: 0, valeurEstimeeBanque: 0 }
+    const somme = estimations.reduce(
+      (acc, e) => ({
+        valeurMarche: acc.valeurMarche + e.valeurMarche,
+        valeurBancaire: acc.valeurBancaire + e.valeurBancaire,
+      }),
+      { valeurMarche: 0, valeurBancaire: 0 }
     );
 
-    const valeurEstimeeMarche = Math.round(moyenne.valeurEstimeeMarche / estimations.length);
-    const valeurEstimeeBanque = Math.round(moyenne.valeurEstimeeBanque / estimations.length);
+    const valeurMarche = Math.round(somme.valeurMarche / estimations.length);
+    const valeurBancaire = Math.round(somme.valeurBancaire / estimations.length);
 
-    res.json({ valeurEstimeeMarche, valeurEstimeeBanque });
-
+    res.json({ valeurMarche, valeurBancaire, runs: estimations.length });
   } catch (err) {
-    console.error("❌ Erreur backend /api/estimation :", err);
-    res.status(500).json({ error: "Erreur interne serveur estimation." });
+    // 👉 Logs détaillés
+    console.error("❌ Erreur backend /api/estimation :");
+    if (err.response) {
+      console.error("Status:", err.response.status);
+      console.error("Data:", err.response.data);
+    } else if (err.status) {
+      console.error("Status:", err.status, "Message:", err.message);
+    } else {
+      console.error(err);
+    }
+
+    return res.status(500).json({
+      error: "Erreur interne serveur estimation.",
+      details: err.response?.data || err.message || "Unknown error",
+    });
   }
 });
 
-
+/* ----------------------------------------------------------------
+   OCR + Analyse document (inchangés)
+----------------------------------------------------------------- */
 app.use(ocrRoute);
-
-
 
 app.post("/api/analyse-document", async (req, res) => {
   try {
@@ -167,8 +424,6 @@ app.post("/api/analyse-document", async (req, res) => {
     res.status(500).json({ error: "Erreur dans l'analyse du document." });
   }
 });
-
-
 
 // 👇 Ce bloc doit rester à la toute fin
 app.listen(port, () => {

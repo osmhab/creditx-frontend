@@ -35,6 +35,9 @@ export default function DashboardClient() {
     open: false,
     message: "",
   });
+  const [showLocked, setShowLocked] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
+
 
   useEffect(() => {
     if (!user || !user.uid) return;
@@ -98,18 +101,23 @@ export default function DashboardClient() {
 
   const getStatutAffichage = (key, value) => {
   const v = (value || "").toString();
+  const isBienCalcule = Boolean(demandes[0]?.bien?.estimationCreditX);
 
-  
-
-  // Cas "Demande" (typeDemande) : on affiche sa valeur telle quelle ou "Action requise"
+  // 1) "Demande" : si bien calculé → afficher "Calculé" et bloquer l'accès (géré au onClick plus bas)
   if (key === "typeDemande") {
+    if (isBienCalcule) {
+      return { label: "Calculé", color: "#2049B0", icon: null, fontWeight: "font-semibold" };
+    }
     if (!v || v === "Non défini") {
       return { label: "Action requise", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
     }
+    // avant calcul : on montre le type choisi ("Achat d’un bien existant", etc.)
     return { label: v, color: "#000000", icon: null, fontWeight: "font-semibold" };
   }
 
-  // États normalisés
+  
+
+  // États normalisés hors "Calculé"
   if (v === "Critère bloquant") {
     return { label: "Critère bloquant", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
   }
@@ -117,9 +125,10 @@ export default function DashboardClient() {
     return { label: "Terminé", color: "#00B050", icon: null, fontWeight: "font-semibold" };
   }
 
-  // Par défaut / Non défini
+  // Par défaut
   return { label: "Action requise", color: "#FF5C02", icon: null, fontWeight: "font-semibold" };
 };
+
 
 
 // --- PRÉ-REQUIS POUR ACCÉDER À FINANCEMENT ---
@@ -130,6 +139,7 @@ const hasTypeDemande =
 const canOpenFinancement =
   hasTypeDemande && isTermine(demandeCourante.etatInfos) && isTermine(demandeCourante.etatBien);
 
+const isBienCalcule = Boolean(demandes[0]?.bien?.estimationCreditX);
 
 
 
@@ -398,14 +408,20 @@ const canOpenFinancement =
 
                     return (
   <div
-    key={key}
     className="bg-white px-5 py-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
-    onClick={() => {
+  onClick={() => {
   const id = demandes[0]?.id;
   if (!id) return;
 
   if (key === "typeDemande") {
-    navigate("/type-demande");
+  const isBienCalcule = Boolean(demandes[0]?.bien?.estimationCreditX);
+  if (isBienCalcule) {
+    setShowLocked(true);   // 🔒 ouvre le modal "Votre bien a déjà été calculé"
+    return;
+  }
+  navigate("/type-demande"); // sinon, accès normal
+
+
   } else if (key === "etatInfos") {
     navigate(`/informations-personnelles?id=${id}`);
   } else if (key === "etatBien") {
@@ -439,22 +455,56 @@ const canOpenFinancement =
 
   >
     <div>
-      <p className="font-semibold text-base lg:text-sm leading-tight">
-        {labels[i]}
-      </p>
+  <p className="font-semibold text-base lg:text-sm leading-tight">
+    {labels[i]}
+  </p>
 
-      <div className="flex items-center gap-2 mt-[2px]">
-        <p
-          className={`text-sm lg:text-xs ${statutAffichage.fontWeight}`}
-          style={{ color: statutAffichage.color }}
+  {key === "typeDemande" ? (
+    <>
+      {/* Ligne 1 : le type choisi */}
+      <p className="text-sm lg:text-xs text-black mt-[2px]">
+        {demandes[0]?.typeDemande || "Action requise"}
+      </p>
+      {/* Ligne 2 : badge Calculé si estimation */}
+      {isBienCalcule && (
+        <span
+          className="inline-block mt-1 text-[11px] lg:text-[10px] font-semibold px-2 py-[2px] rounded-full"
+          style={{ backgroundColor: "#E8F0FF", color: "#2049B0" }}
         >
-          {statutAffichage.label}
-        </p>
-        {statutAffichage.icon && (
-          <span className="text-sm">{statutAffichage.icon}</span>
-        )}
-      </div>
+          Calculé
+        </span>
+      )}
+    </>
+  ) : key === "etatBien" ? (
+    <>
+      {/* Ligne 1 : état actuel du bien (Terminé, Critère bloquant, Action requise...) */}
+      <p className="text-sm lg:text-xs text-black mt-[2px]">
+        {statutAffichage.label}
+      </p>
+      {/* Ligne 2 : badge Calculé si estimation */}
+      {isBienCalcule && (
+        <span
+          className="inline-block mt-1 text-[11px] lg:text-[10px] font-semibold px-2 py-[2px] rounded-full"
+          style={{ backgroundColor: "#E8F0FF", color: "#2049B0" }}
+        >
+          Calculé
+        </span>
+      )}
+    </>
+  ) : (
+    <div className="flex items-center gap-2 mt-[2px]">
+      <p
+        className={`text-sm lg:text-xs ${statutAffichage.fontWeight}`}
+        style={{ color: statutAffichage.color }}
+      >
+        {statutAffichage.label}
+      </p>
+      {statutAffichage.icon && <span className="text-sm">{statutAffichage.icon}</span>}
     </div>
+  )}
+</div>
+
+
 
     <ArrowForwardIosIcon fontSize="small" className="text-gray-300" />
   </div>
@@ -512,6 +562,62 @@ const canOpenFinancement =
           onlyConfirm
           showCloseIcon
         />
+
+        {/* === MODAL LOCKED (ModalMessage) — “Votre bien a déjà été calculé” === */}
+<ModalMessage
+  open={showLocked}
+  onClose={() => setShowLocked(false)}
+  onConfirm={() => { setShowLocked(false); setShowUpsell(true); }}
+  title="Votre bien a déjà été calculé"
+  message={
+    <div className="text-left">
+      <p className="text-sm text-gray-600">
+        La modification des informations n’est plus disponible après le calcul.
+        Vous pouvez consulter votre estimation détaillée ou passer à la suite.
+      </p>
+    </div>
+  }
+  confirmText="Voir en détail"
+  cancelText="Fermer"
+  showCancel
+  showCloseIcon
+  iconType="info"
+  maxWidth="sm"
+/>
+
+{/* === MODAL UPSELL (optionnel) — “Débloquez votre estimation complète” === */}
+<ModalMessage
+  open={showUpsell}
+  onClose={() => setShowUpsell(false)}
+  onConfirm={() => {
+    // TODO: route paiement
+    // ex: navigate(`/checkout/estimation?demandeId=${demandes[0]?.id}`)
+    setShowUpsell(false);
+  }}
+  title="Débloquez votre estimation complète"
+  message={
+    <div className="text-left">
+      <p className="text-sm text-gray-700">
+        Accédez aux montants détaillés reconnus par les banques, ainsi qu’au rapport d’estimation complet.
+      </p>
+      <ul className="mt-3 text-sm text-gray-700 list-disc pl-5 space-y-1">
+        <li>Valeur marché & valeur bancaire (chiffres exacts)</li>
+        <li>Écart vs prix d’achat et recommandations</li>
+        <li>Export PDF pour votre dossier</li>
+      </ul>
+      <div className="mt-4 text-sm">
+        <span className="text-gray-500">Tarif</span> <span className="font-semibold">CHF 19.–</span>
+      </div>
+    </div>
+  }
+  confirmText="Découvrez votre estimation"
+  cancelText="Plus tard"
+  showCancel
+  showCloseIcon
+  iconType="rocket"
+  maxWidth="sm"
+/>
+
       </main>
     </div>
   );

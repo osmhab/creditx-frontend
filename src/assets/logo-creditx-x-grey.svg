@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="208px" height="208px" viewBox="0 0 208 208" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>Logo X Black Copy</title>
+<svg width="87px" height="87px" viewBox="0 0 87 87" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Frame Copy</title>
     <defs>
-        <path d="M0,0 L208,0 L208,208 L0,208 L0,0 Z" id="path-1"></path>
+        <path d="M0,0 L86,0 L86,86 L0,86 L0,0 Z" id="path-1"></path>
     </defs>
-    <g id="Logo-X-Black-Copy" stroke="none" fill="none" xlink:href="#path-1" fill-rule="evenodd" stroke-width="1">
-        <g id="X" transform="translate(25.5576, 15.2217)" fill="#B6C4C9">
-            <path d="M156.884766,0 L97.453125,88.59375 L97.453125,88.9628906 L155.900391,177.556641 L119.232422,177.556641 L77.2734375,112.21875 L76.1660156,112.21875 L34.2070313,177.556641 L1.063,177.556 L130.982039,0 L156.884766,0 Z M37.5292969,0 L72.342,56.429 L53.38,81.5 L-6.10622664e-16,0 L37.5292969,0 Z" id="Combined-Shape" fill-rule="nonzero"></path>
-        </g>
+    <g id="Frame-Copy" stroke="none" fill="none" transform="translate(0.5, 0.5)" xlink:href="#path-1" fill-rule="nonzero">
+        <path d="M73.5753849,10.85 L48.9236151,43.977 L70.1009615,75.15 L55.8206151,75.15 L41.8426151,53.493 L25.7267032,75.15 L12.8116151,75.15 L60.0970224,10.85 L73.5753849,10.85 Z M27.2431856,10.85 L39.7971227,31.217672 L39.1916151,31.991 L32.2136151,40.912 L12.4246151,10.85 L27.2431856,10.85 Z" id="Combined-Shape-Copy" fill="#B6C4C9"></path>
     </g>
 </svg>

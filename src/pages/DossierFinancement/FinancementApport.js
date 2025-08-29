@@ -80,7 +80,8 @@ const defaultForType = (type, isRP) => {
     case "libre_passage":
       return { type, montant: "", institution: null, institutionAutre: "" };
     case "pilier3":
-      return { type, p3Type: isRP ? null : "3b", valeurRachat: "", dateValeur: "", institution: null, institutionAutre: "" };
+      // p3Type: 3a ou 3b ; p3aSupport: "assurance" (police) ou "compte" (bancaire)
+      return { type, p3Type: isRP ? null : "3b", p3aSupport: null, valeurRachat: "", montant: "", dateValeur: "", institution: null, institutionAutre: "" };
     case "donation":
       return { type, montant: "", date: "" };
     case "avance_hoirie":
@@ -170,11 +171,14 @@ export default function FinancementApport() {
             institutionAutre: ap.librePassage.institutionAutre ?? "",
           });
         }
-        if (ap.pilier3?.valeurRachat) {
+        if (ap.pilier3) {
+          // Ancien schéma: valeurRachat seulement
           tmp.push({
             type: "pilier3",
             p3Type: ap.pilier3.type ?? (isRP ? null : "3b"),
+            p3aSupport: ap.pilier3.p3aSupport ?? null,
             valeurRachat: ap.pilier3.valeurRachat ?? "",
+            montant: ap.pilier3.montant ?? "",
             dateValeur: ap.pilier3.dateValeur ?? "",
             institution: ap.pilier3.institution ?? null,
             institutionAutre: ap.pilier3.institutionAutre ?? "",
@@ -220,10 +224,17 @@ export default function FinancementApport() {
         return m >= 20000 ? m : 0;
       }
       case "pilier3": {
-        const v = toFloatOrNull(ln.valeurRachat) || 0;
-        // 3a: seulement RP ; 3b: RP ou rendement
+        // 3a: RP uniquement ; 3b: partout
         const okType = ln.p3Type === "3b" || (isRP && ln.p3Type === "3a");
-        return okType ? v : 0;
+        if (!okType) return 0;
+        // Spécifique 3a: Police d'assurance = valeur de rachat ; Compte bancaire = montant
+        if (ln.p3Type === "3a") {
+          const v = ln.p3aSupport === "assurance" ? (toFloatOrNull(ln.valeurRachat) || 0) : (toFloatOrNull(ln.montant) || 0);
+          return v > 0 ? v : 0;
+        }
+        // 3b: on garde la logique "valeur de rachat" (contrats)
+        const v3b = toFloatOrNull(ln.valeurRachat) || 0;
+        return v3b > 0 ? v3b : 0;
       }
       case "donation": {
         const m = toFloatOrNull(ln.montant) || 0;
@@ -244,7 +255,8 @@ export default function FinancementApport() {
       case "liquidites":
         return includedAmount(ln); // tout compte comme dur
       case "pilier3":
-        return ln.p3Type === "3b" ? includedAmount(ln) : 0; // 3b = dur ; 3a = pas dur
+        return includedAmount(ln); // 3a (si RP) et 3b comptent comme durs
+
       case "donation":
       case "avance_hoirie":
         return includedAmount(ln); // dur
@@ -327,6 +339,15 @@ export default function FinancementApport() {
           if ((ln.type === "lpp" || ln.type === "libre_passage") && ln.institution !== "Autre")
             out.institutionAutre = null;
           if (ln.type === "pilier3" && ln.institution !== "Autre") out.institutionAutre = null;
+          // Nettoyage champs 3a selon support
+          if (ln.type === "pilier3" && ln.p3Type === "3a") {
+            if (ln.p3aSupport === "assurance") {
+              out.montant = null; // on ne garde que valeurRachat
+            } else if (ln.p3aSupport === "compte") {
+              out.valeurRachat = null; // on ne garde que montant
+              out.dateValeur = null;
+            }
+          }
           return out;
         });
 
@@ -350,82 +371,82 @@ export default function FinancementApport() {
   };
 
   // --- helpers progress ---
-const clamp01 = (x) => Math.max(0, Math.min(1, x));
-const barColor = (ratio) =>
-  ratio >= 1 ? "bg-green-500" : ratio >= 0.5 ? "bg-yellow-400" : "bg-orange-500";
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const barColor = (ratio) =>
+    ratio >= 1 ? "bg-green-500" : ratio >= 0.5 ? "bg-yellow-400" : "bg-orange-500";
 
-// 100% visuel légèrement avant la fin (96%)
-const TARGET_VISUAL_POS = 0.96;
+  // 100% visuel légèrement avant la fin (96%)
+  const TARGET_VISUAL_POS = 0.96;
 
-function ProgressWithMarker({ ratio }) {
-  const clamped = clamp01(ratio);
-  const percent = Math.min(100, Math.round(clamped * 100));
-  const colorClass = barColor(clamped); // "bg-green-500" | "bg-yellow-400" | "bg-orange-500"
+  function ProgressWithMarker({ ratio }) {
+    const clamped = clamp01(ratio);
+    const percent = Math.min(100, Math.round(clamped * 100));
+    const colorClass = barColor(clamped); // "bg-green-500" | "bg-yellow-400" | "bg-orange-500"
 
-  return (
-    <div className="relative w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-      {/* Remplissage */}
-      <div
-        className={`absolute inset-y-0 left-0 ${colorClass} z-0 transition-all`}
-        style={{ width: `${percent}%` }}
-      />
-      {/* Repère 100% (à ~96%) */}
-      <div
-        className="absolute inset-y-0 z-10 flex items-stretch"
-        style={{ left: `${TARGET_VISUAL_POS * 100}%` }}
-        aria-hidden="true"
-      >
-        <div className="w-[2px] h-full bg-gray-400/70" />
+    return (
+      <div className="relative w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+        {/* Remplissage */}
+        <div
+          className={`absolute inset-y-0 left-0 ${colorClass} z-0 transition-all`}
+          style={{ width: `${percent}%` }}
+        />
+        {/* Repère 100% (à ~96%) */}
+        <div
+          className="absolute inset-y-0 z-10 flex items-stretch"
+          style={{ left: `${TARGET_VISUAL_POS * 100}%` }}
+          aria-hidden="true"
+        >
+          <div className="w-[2px] h-full bg-gray-400/70" />
+        </div>
       </div>
-    </div>
-  );
-}
-
-
-// Montants "pris en compte" (tu as déjà totalApport = somme des sources prises en compte)
-const totalEligible = totalApport; // alias lisible
-
-// Montants "fonds propres durs" : tout sauf 2e pilier (LPP + libre passage).
-// (3e pilier A/B sont considérés durs ici; 3a reste RP uniquement via ta logique existante)
-const amountHard = (ln) => {
-  switch (ln.type) {
-    case "liquidites":      return toFloatOrNull(ln.montant) || 0;
-    case "donation":        return toFloatOrNull(ln.montant) || 0;
-    case "avance_hoirie":   return toFloatOrNull(ln.montant) || 0;
-    case "pilier3": {
-      const v = toFloatOrNull(ln.valeurRachat) || 0;
-      // 3b toujours dur; 3a dur seulement en RP (déjà filtré par ailleurs)
-      if (ln.p3Type === "3b") return v;
-      if (isRP && ln.p3Type === "3a") return v;
-      return 0;
-    }
-    // 2e pilier -> pas "dur"
-    case "lpp":
-    case "libre_passage":
-    default:
-      return 0;
+    );
   }
-};
 
-const totalHard = useMemo(
-  () => (lignes || []).reduce((s, ln) => s + amountHard(ln), 0),
-  [lignes, isRP]
-);
+  // Montants "pris en compte" (alias)
+  const totalEligible = totalApport;
 
-// Seuils requis
-const requiredTotal = typeof prixAchat === "number" && prixAchat > 0
-  ? Math.round(prixAchat * (isRP ? 0.20 : 0.25))
-  : null;
+  // Montants "fonds propres durs" : tout sauf 2e pilier (LPP + libre passage).
+  const amountHard = (ln) => {
+    switch (ln.type) {
+      case "liquidites":      return toFloatOrNull(ln.montant) || 0;
+      case "donation":        return toFloatOrNull(ln.montant) || 0;
+      case "avance_hoirie":   return toFloatOrNull(ln.montant) || 0;
+      case "pilier3":
+  // Compte 3a (si RP) et 3b comme dur.
+  // On reprend la même logique de valeur que dans includedAmount :
+  if (ln.p3Type === "3a") {
+    return ln.p3aSupport === "assurance"
+      ? (toFloatOrNull(ln.valeurRachat) || 0)
+      : (toFloatOrNull(ln.montant) || 0);
+  }
+  // 3b
+  return toFloatOrNull(ln.valeurRachat) || 0;
 
-// En RP: minimum 10% de "durs". En rendement: tout doit être dur, donc 25% durs.
-const requiredHard = typeof prixAchat === "number" && prixAchat > 0
-  ? Math.round(prixAchat * (isRP ? 0.10 : 0.25))
-  : null;
+      case "lpp":
+      case "libre_passage":
+      default:
+        return 0;
+    }
+  };
 
-// Ratios pour la barre
-const ratioTotalReq = requiredTotal ? totalEligible / requiredTotal : 0;
-const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
+  const totalHard = useMemo(
+    () => (lignes || []).reduce((s, ln) => s + amountHard(ln), 0),
+    [lignes, isRP]
+  );
 
+  // Seuils requis
+  const requiredTotal = typeof prixAchat === "number" && prixAchat > 0
+    ? Math.round(prixAchat * (isRP ? 0.20 : 0.25))
+    : null;
+
+  // En RP: minimum 10% de "durs". En rendement: tout doit être dur, donc 25% durs.
+  const requiredHard = typeof prixAchat === "number" && prixAchat > 0
+    ? Math.round(prixAchat * (isRP ? 0.10 : 0.25))
+    : null;
+
+  // Ratios pour la barre
+  const ratioTotalReq = requiredTotal ? totalEligible / requiredTotal : 0;
+  const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
 
   if (loading) return <div className="p-6 text-base">Chargement...</div>;
 
@@ -448,40 +469,34 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
         <div className="bg-white rounded-2xl p-4 space-y-5">
           {/* Contexte */}
           {/* Montant minimum requis */}
-<div className="rounded-xl border border-gray-200 p-3 space-y-3">
-  <div className="flex items-center justify-between">
-    <p className="text-sm font-medium">Montant minimum requis</p>
-    <p className="text-sm text-gray-600">
-      {requiredTotal != null ? `${fmtCHF(totalEligible)} / ${fmtCHF(requiredTotal)}` : "—"}
-    </p>
-  </div>
+          <div className="rounded-xl border border-gray-200 p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Fonds totaux ajoutés </p>
+              <p className="text-sm text-gray-600">
+                {requiredTotal != null ? `${fmtCHF(totalEligible)} / ${fmtCHF(requiredTotal)}` : "—"}
+              </p>
+            </div>
 
-  {/* Barre progression - total */}
-  <ProgressWithMarker ratio={ratioTotalReq} />
+            {/* Barre progression - total */}
+            <ProgressWithMarker ratio={ratioTotalReq} />
 
+            {/* Sous-ligne d’explication */}
+            <p className="text-xs text-gray-500">
+              {isRP
+                ? "Résidence principale : 20% du prix d’achat minimum."
+                : "Bien de rendement : 25% du prix d’achat minimum (fonds propres durs uniquement)."}
+            </p>
 
-  {/* Sous-ligne d’explication */}
-  <p className="text-xs text-gray-500">
-    {isRP
-      ? "Résidence principale : 20% du prix d’achat minimum."
-      : "Bien de rendement : 25% du prix d’achat minimum (fonds propres durs uniquement)."}
-  </p>
+            {/* Fonds propres durs */}
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-xs font-medium">dont fonds propres durs (min. requis)</p>
+              <p className="text-xs text-gray-600">
+                {requiredHard != null ? `${fmtCHF(totalHard)} / ${fmtCHF(requiredHard)}` : "—"}
+              </p>
+            </div>
+            <ProgressWithMarker ratio={ratioHardReq} />
 
-  {/* Fonds propres durs */}
-  <div className="flex items-center justify-between mt-3">
-    <p className="text-xs font-medium">Fonds propres durs (minimum)</p>
-    <p className="text-xs text-gray-600">
-      {requiredHard != null ? `${fmtCHF(totalHard)} / ${fmtCHF(requiredHard)}` : "—"}
-    </p>
-  </div>
-  <ProgressWithMarker ratio={ratioHardReq} />
-
-
-  <p className="text-[11px] text-gray-500">
-    Les “fonds propres durs” excluent le 2e pilier (LPP et libre passage). En RP, au moins 10% doivent être durs.
-  </p>
-</div>
-
+          </div>
 
           {/* Lignes */}
           {lignes.length === 0 && (
@@ -490,8 +505,6 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
 
           <div className="space-y-3">
             {lignes.map((ln, idx) => {
-              const included = includedAmount(ln);
-
               // Avertissements spécifiques
               const showLPPWarn =
                 ln.type === "lpp" &&
@@ -510,7 +523,6 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{labelType(ln.type)}</span>
-                     
                     </div>
                     <IconButton size="small" onClick={() => removeLigne(idx)} sx={{ color: "#ef4444" }}>
                       <DeleteOutlineOutlinedIcon fontSize="small" />
@@ -685,7 +697,7 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-xs text-gray-700">Avoirs de 3e pilier</label>
-                        <Tooltip title="Valeur de rachat = montant récupérable à la date indiquée">
+                        <Tooltip title="3a: Police = valeur de rachat / Compte = montant">
                           <IconButton size="small" onClick={() => setOpenModalP3(true)} sx={{ color: "#0047FF", p: 0.5 }}>
                             <InfoOutlinedIcon fontSize="inherit" />
                           </IconButton>
@@ -696,7 +708,11 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
                         <SelecteurCreditX
                           label="Type"
                           value={ln.p3Type || null}
-                          onChange={(v) => patchLigne(idx, { p3Type: v })}
+                          onChange={(v) => patchLigne(idx, { p3Type: v, // reset support & valeurs si on change le type
+                            p3aSupport: v === '3a' ? (ln.p3aSupport ?? null) : null,
+                            montant: v === '3a' ? ln.montant : '',
+                            valeurRachat: v === '3a' ? ln.valeurRachat : '',
+                          })}
                           options={[
                             ...(isRP ? [{ value: "3a", label: "Prévoyance liée (3a)" }] : []),
                             { value: "3b", label: "Prévoyance libre (3b)" },
@@ -707,27 +723,92 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-xs mb-1">Valeur de rachat (CHF)</label>
-                        <input
-                          type="text"
-                          {...numPropsDec}
-                          value={ln.valeurRachat || ""}
-                          onChange={(e) => patchLigne(idx, { valeurRachat: e.target.value })}
-                          placeholder="p. ex. 50’000"
-                          className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
-                        />
-                      </div>
+                      {ln.p3Type === '3a' && (
+                        <div className="space-y-3">
+                          <SelecteurCreditX
+                            label="Support 3a"
+                            value={ln.p3aSupport || null}
+                            onChange={(v) => {
+                              // on nettoie le champ non pertinent
+                              const patch = { p3aSupport: v };
+                              if (v === 'assurance') { patch.montant = ''; }
+                              if (v === 'compte') { patch.valeurRachat = ''; patch.dateValeur = ''; }
+                              patchLigne(idx, patch);
+                            }}
+                            options={[
+                              { value: 'assurance', label: "Police d'assurance (3a)" },
+                              { value: 'compte', label: "Compte bancaire (3a)" },
+                            ]}
+                            placeholder="Sélectionner"
+                            searchable={false}
+                            clearable
+                          />
 
-                      <div>
-                        <label className="block text-xs mb-1">Date</label>
-                        <input
-                          type="date"
-                          value={ln.dateValeur || ""}
-                          onChange={(e) => patchLigne(idx, { dateValeur: e.target.value })}
-                          className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
-                        />
-                      </div>
+                          {ln.p3aSupport === 'assurance' && (
+                            <>
+                              <div>
+                                <label className="block text-xs mb-1">Valeur de rachat (CHF)</label>
+                                <input
+                                  type="text"
+                                  {...numPropsDec}
+                                  value={ln.valeurRachat || ""}
+                                  onChange={(e) => patchLigne(idx, { valeurRachat: e.target.value })}
+                                  placeholder="p. ex. 50’000"
+                                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs mb-1">Date</label>
+                                <input
+                                  type="date"
+                                  value={ln.dateValeur || ""}
+                                  onChange={(e) => patchLigne(idx, { dateValeur: e.target.value })}
+                                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {ln.p3aSupport === 'compte' && (
+                            <div>
+                              <label className="block text-xs mb-1">Montant (CHF)</label>
+                              <input
+                                type="text"
+                                {...numPropsDec}
+                                value={ln.montant || ""}
+                                onChange={(e) => patchLigne(idx, { montant: e.target.value })}
+                                placeholder="p. ex. 50’000"
+                                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {ln.p3Type === '3b' && (
+                        <>
+                          <div>
+                            <label className="block text-xs mb-1">Valeur de rachat (CHF)</label>
+                            <input
+                              type="text"
+                              {...numPropsDec}
+                              value={ln.valeurRachat || ""}
+                              onChange={(e) => patchLigne(idx, { valeurRachat: e.target.value })}
+                              placeholder="p. ex. 50’000"
+                              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs mb-1">Date</label>
+                            <input
+                              type="date"
+                              value={ln.dateValeur || ""}
+                              onChange={(e) => patchLigne(idx, { dateValeur: e.target.value })}
+                              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none"
+                            />
+                          </div>
+                        </>
+                      )}
 
                       <div>
                         <SelecteurCreditX
@@ -859,11 +940,11 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
             {isRP ? (
               <div className="pt-2 space-y-1">
                 <p className={`text-xs ${meetsRP_Total ? "text-green-700" : "text-amber-600"}`}>
-                  Exigence RP — Minimum <b>20%</b> au total
+                  Exigence — Minimum <b>20%</b> au total
                   {reqTotalRP != null && ` (${fmtCHF(reqTotalRP)})`} — {meetsRP_Total ? "OK" : "Insuffisant"}
                 </p>
                 <p className={`text-xs ${meetsRP_Dur ? "text-green-700" : "text-amber-600"}`}>
-                  Exigence RP — Minimum <b>10%</b> en <b>fonds propres durs</b>
+                  Exigence — Minimum <b>10%</b> en <b>fonds propres durs</b>
                   {reqDurRP != null && ` (${fmtCHF(reqDurRP)})`} — {meetsRP_Dur ? "OK" : "Insuffisant"}
                 </p>
               </div>
@@ -899,7 +980,7 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
           </div>
         </div>
 
-        {/* Modale — choisir le type à l’ajout (taille augmentée) */}
+                {/* Modale — choisir le type à l’ajout (taille augmentée) */}
         <ModalMessage
           open={modalAddOpen}
           onClose={() => setModalAddOpen(false)}
@@ -934,7 +1015,7 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
           maxWidth="md"
           paperSx={{ maxHeight: "90vh" }}
           contentSx={{ minHeight: 380 }}
-          iconType="knowledge"
+          iconType="info"
         />
 
         {/* Modales d’info */}
@@ -946,7 +1027,7 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
           message={
             <>
               <Typography variant="body1" sx={{ mb: 1 }}>
-                Par <b>liquidités</b> on entend les avoirs immédiatement disponibles:
+                Par <b>liquidités</b> on entend les avoirs immédiatement disponibles :
                 comptes à vue/épargne, dépôts à terme, cash. Les <b>titres</b> (actions, obligations, fonds)
                 sont également admis et comptent comme <b>fonds propres durs</b>.
               </Typography>
@@ -965,19 +1046,27 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
           open={openModalP3}
           onClose={() => setOpenModalP3(false)}
           onConfirm={() => setOpenModalP3(false)}
-          title="Valeur de rachat — explication"
+          title="Prévoyance 3a — quoi saisir ?"
           message={
             <>
               <Typography variant="body1" sx={{ mb: 1 }}>
-                La <strong>valeur de rachat</strong> correspond au montant récupérable de votre contrat (3a/3b) à la date indiquée.
+                Pour un <b>3a</b>, indiquez selon le support :
               </Typography>
-              <Typography variant="caption" sx={{ color: "#6b7280" }}>
-                Elle ne correspond pas forcément au total de primes versées. Demandez cette information à votre assureur.
+              <ul className="list-disc ml-5 text-sm">
+                <li><b>Police d'assurance 3a</b> → saisir la <b>valeur de rachat</b> (et la date).</li>
+                <li><b>Compte bancaire 3a</b> → saisir le <b>montant</b> disponible.</li>
+              </ul>
+              <Typography variant="caption" sx={{ color: "#6b7280", display: 'block', mt: 1 }}>
+                Rappel : le 3a n’est pris en compte que pour une <b>résidence principale</b>.
               </Typography>
             </>
           }
-          confirmText="Compris" onlyConfirm showCloseIcon iconType="knowledge"
+          confirmText="Compris"
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
         />
+
         <ModalMessage
           open={openModalDon}
           onClose={() => setOpenModalDon(false)}
@@ -988,8 +1077,12 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
               <strong>Donation</strong> : transfert volontaire d’un montant (souvent familial) sans contrepartie.
             </Typography>
           }
-          confirmText="Compris" onlyConfirm showCloseIcon iconType="knowledge"
+          confirmText="Compris"
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
         />
+
         <ModalMessage
           open={openModalAvh}
           onClose={() => setOpenModalAvh(false)}
@@ -1000,7 +1093,10 @@ const ratioHardReq  = requiredHard  ? totalHard     / requiredHard  : 0;
               Somme avancée sur un futur héritage, généralement actée par écrit.
             </Typography>
           }
-          confirmText="Compris" onlyConfirm showCloseIcon iconType="knowledge"
+          confirmText="Compris"
+          onlyConfirm
+          showCloseIcon
+          iconType="knowledge"
         />
       </div>
     </div>

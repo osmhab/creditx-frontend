@@ -25,7 +25,7 @@ const handleClick = () => {
   if (user) {
     navigate('/formulaire');
   } else {
-    navigate('/login'); // ou '/connexion'
+    navigate('/login-client'); // ou '/connexion'
   }
 };
 

@@ -16,6 +16,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined';
 
 const Transition = React.forwardRef((props, ref) => (
   <Slide direction="up" ref={ref} {...props} timeout={300} />
@@ -29,6 +30,7 @@ const ModalMessage = ({
   message,
   confirmText = 'Confirmer',
   cancelText = 'Annuler',
+  confirmDisabled = false, 
   showCancel = true,
   onlyConfirm = false,
   showCloseIcon = false,
@@ -46,17 +48,21 @@ const ModalMessage = ({
 }) => {
   // Choix d’icône selon le contexte
   let IconComp = null;
-  let defaultColor = '#0047FF'; // bleu CreditX par défaut
+  let defaultColor = '#001BFF'; // bleu CreditX par défaut
 
   if (showIcon && iconType) {
     switch (iconType) {
       case 'knowledge':
         IconComp = SchoolOutlinedIcon;
-        defaultColor = '#0047FF';
+        defaultColor = '#001BFF';
+        break;
+      case 'rocket':
+        IconComp = RocketLaunchOutlinedIcon;
+        defaultColor = '#001BFF';
         break;
       case 'info':
         IconComp = InfoOutlinedIcon;
-        defaultColor = '#3B82F6'; // bleu clair
+        defaultColor = '#001BFF'; // bleu clair
         break;
       case 'warning':
         IconComp = WarningAmberOutlinedIcon;
